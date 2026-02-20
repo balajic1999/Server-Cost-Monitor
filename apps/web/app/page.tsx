@@ -1,10 +1,22 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../contexts/AuthContext";
+
 export default function HomePage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading) {
+      router.replace(user ? "/dashboard" : "/login");
+    }
+  }, [loading, user, router]);
+
   return (
-    <main className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center gap-4 p-8">
-      <h1 className="text-3xl font-bold">CloudPulse MVP</h1>
-      <p className="text-slate-300">
-        Step 1 complete: monorepo scaffolded, backend auth bootstrapped, PostgreSQL schema defined.
-      </p>
-    </main>
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+    </div>
   );
 }

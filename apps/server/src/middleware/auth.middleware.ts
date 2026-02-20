@@ -1,12 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken";
+import { JwtUser } from "@cloudpulse/types";
 import { env } from "../config/env";
 
 export interface AuthedRequest extends Request {
-  user?: {
-    sub: string;
-    email: string;
-  };
+  user?: JwtUser;
 }
 
 export function requireAuth(req: AuthedRequest, res: Response, next: NextFunction) {
@@ -18,7 +16,7 @@ export function requireAuth(req: AuthedRequest, res: Response, next: NextFunctio
   const token = auth.slice(7);
 
   try {
-    const payload = jwt.verify(token, env.JWT_SECRET) as { sub: string; email: string };
+    const payload = jwt.verify(token, env.JWT_SECRET) as JwtUser;
     req.user = payload;
     return next();
   } catch {
