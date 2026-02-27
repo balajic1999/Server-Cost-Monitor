@@ -1,6 +1,6 @@
 import { prisma } from "../../lib/prisma";
 import { getProjectCostSummary } from "../aws/aws-cost.service";
-import { sendAlertEmail } from "./alert.sender";
+import { sendAlertEmail, sendSlackAlert } from "./alert.sender";
 
 interface AlertTrigger {
     ruleId: string;
@@ -22,11 +22,11 @@ export async function evaluateAlerts(projectId: string): Promise<AlertTrigger[]>
         // Daily budget check
         if (rule.dailyBudget) {
             const budget = Number(rule.dailyBudget);
-            if (summary.todaySpend > budget) {
+            if (Number(summary.todaySpend) > budget) {
                 triggers.push({
                     ruleId: rule.id,
-                    reason: `Daily budget exceeded: $${summary.todaySpend.toFixed(2)} > $${budget.toFixed(2)}`,
-                    payload: { type: "daily_budget", todaySpend: summary.todaySpend, budget },
+                    reason: `Daily budget exceeded: $${Number(summary.todaySpend).toFixed(2)} > $${budget.toFixed(2)}`,
+                    payload: { type: "daily_budget", todaySpend: Number(summary.todaySpend), budget },
                 });
             }
         }
@@ -34,20 +34,20 @@ export async function evaluateAlerts(projectId: string): Promise<AlertTrigger[]>
         // Monthly budget check
         if (rule.monthlyBudget) {
             const budget = Number(rule.monthlyBudget);
-            if (summary.monthSpend > budget) {
+            if (Number(summary.monthSpend) > budget) {
                 triggers.push({
                     ruleId: rule.id,
-                    reason: `Monthly budget exceeded: $${summary.monthSpend.toFixed(2)} > $${budget.toFixed(2)}`,
-                    payload: { type: "monthly_budget", monthSpend: summary.monthSpend, budget },
+                    reason: `Monthly budget exceeded: $${Number(summary.monthSpend).toFixed(2)} > $${budget.toFixed(2)}`,
+                    payload: { type: "monthly_budget", monthSpend: Number(summary.monthSpend), budget },
                 });
             }
 
             // Monthly forecast warning (80% threshold)
-            if (summary.monthForecast > budget * 0.8 && summary.monthSpend <= budget) {
+            if (Number(summary.monthForecast) > budget * 0.8 && Number(summary.monthSpend) <= budget) {
                 triggers.push({
                     ruleId: rule.id,
-                    reason: `Monthly forecast warning: $${summary.monthForecast.toFixed(2)} projected vs $${budget.toFixed(2)} budget`,
-                    payload: { type: "forecast_warning", forecast: summary.monthForecast, budget },
+                    reason: `Monthly forecast warning: $${Number(summary.monthForecast).toFixed(2)} projected vs $${budget.toFixed(2)} budget`,
+                    payload: { type: "forecast_warning", forecast: Number(summary.monthForecast), budget },
                 });
             }
         }
@@ -85,28 +85,52 @@ export async function evaluateAlerts(projectId: string): Promise<AlertTrigger[]>
         });
         if (recentAlert) continue;
 
+        const channelsSent: string[] = [];
+
         // Send email if enabled
         if (rule.emailEnabled && project.user.email) {
-            await sendAlertEmail({
-                to: project.user.email,
-                userName: project.user.name,
-                projectName: project.name,
-                reason: trigger.reason,
-                payload: trigger.payload,
-            });
+            try {
+                await sendAlertEmail({
+                    to: project.user.email,
+                    userName: project.user.name,
+                    projectName: project.name,
+                    reason: trigger.reason,
+                    payload: trigger.payload,
+                });
+                channelsSent.push("EMAIL");
+            } catch (err) {
+                console.error(`[Alert] Email send failed: ${(err as Error).message}`);
+            }
         }
 
-        // Record alert sent
-        await prisma.alertSent.create({
-            data: {
-                userId: project.user.id,
-                projectId,
-                alertRuleId: trigger.ruleId,
-                channel: rule.emailEnabled ? "EMAIL" : "SLACK",
-                reason: trigger.reason,
-                payload: trigger.payload,
-            },
-        });
+        // Send Slack notification if webhook URL is configured
+        if (rule.slackWebhookUrl) {
+            try {
+                await sendSlackAlert({
+                    webhookUrl: rule.slackWebhookUrl,
+                    projectName: project.name,
+                    reason: trigger.reason,
+                    payload: trigger.payload,
+                });
+                channelsSent.push("SLACK");
+            } catch (err) {
+                console.error(`[Alert] Slack send failed: ${(err as Error).message}`);
+            }
+        }
+
+        // Record each channel as a separate AlertSent entry
+        for (const channel of channelsSent) {
+            await prisma.alertSent.create({
+                data: {
+                    userId: project.user.id,
+                    projectId,
+                    alertRuleId: trigger.ruleId,
+                    channel: channel as "EMAIL" | "SLACK",
+                    reason: trigger.reason,
+                    payload: trigger.payload,
+                },
+            });
+        }
     }
 
     return triggers;

@@ -5,10 +5,15 @@ import { AuthedRequest, requireAuth } from "../../middleware/auth.middleware";
 import { loginUser, registerUser } from "./auth.service";
 import { loginSchema, registerSchema } from "./auth.schema";
 import { z } from "zod";
+import { rateLimit } from "../../middleware/rate-limit.middleware";
 
 export const authRouter = Router();
 
-authRouter.post("/register", async (req, res) => {
+// Rate limiters: stricter for register, moderate for login
+const loginLimiter = rateLimit(15 * 60 * 1000, 10);   // 10 attempts per 15 min
+const registerLimiter = rateLimit(15 * 60 * 1000, 5);  // 5 attempts per 15 min
+
+authRouter.post("/register", registerLimiter, async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ message: "Validation failed", errors: parsed.error.flatten() });
@@ -22,7 +27,7 @@ authRouter.post("/register", async (req, res) => {
   }
 });
 
-authRouter.post("/login", async (req, res) => {
+authRouter.post("/login", loginLimiter, async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ message: "Validation failed", errors: parsed.error.flatten() });
