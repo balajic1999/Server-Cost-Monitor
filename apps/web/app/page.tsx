@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function LandingPage() {
   const { user } = useAuth();
+  const [isYearly, setIsYearly] = useState(false);
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -360,7 +362,7 @@ export default function LandingPage() {
               <div className="text-slate-300 space-y-4 leading-relaxed relative z-10">
                 <h3 className="text-xl font-bold text-white mb-2">Why I built CloudPulse</h3>
                 <p>
-                  "After receiving an unexpected $1,200 AWS bill for an idle side-project, I realized how broken cloud cost monitoring is for independent developers and small teams. The native tools are too complex, and enterprise solutions cost more than the infrastructure itself."
+                  "After receiving an unexpected $34,000 AWS bill for an idle side-project, I realized how broken cloud cost monitoring is for independent developers and small teams. The native tools are too complex, and enterprise solutions cost more than the infrastructure itself."
                 </p>
                 <p>
                   "I built CloudPulse to be the tool I wish I had: simple to set up, secure by default, and proactive about warning you before disaster strikes. We don't have a giant sales team or fancy corporate logos yet, but what we do have is a deep commitment to treating your AWS credentials and data with the utmost respect."
@@ -435,15 +437,6 @@ export default function LandingPage() {
                     <p className="mt-1 text-sm text-slate-400">All credentials and API keys are encrypted at rest using military-grade encryption with unique initialization vectors.</p>
                   </div>
                 </li>
-                <li className="flex items-start gap-4">
-                  <div className="mt-1 rounded-lg bg-purple-500/10 p-2 text-purple-400">
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" /></svg>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-white">SOC 2 Type II Compliant</p>
-                    <p className="mt-1 text-sm text-slate-400">We adhere to the strictest industry standards for security, availability, and confidentiality.</p>
-                  </div>
-                </li>
               </ul>
             </div>
             {/* Visual for security */}
@@ -484,7 +477,27 @@ export default function LandingPage() {
             <p className="mx-auto mt-4 max-w-xl text-slate-400">Start free. Upgrade when you need more power.</p>
           </div>
 
-          <div className="mt-16 grid gap-8 sm:grid-cols-2 mx-auto max-w-3xl">
+          <div className="mt-8 flex justify-center">
+            <div className="flex items-center gap-3 rounded-full border border-slate-700 bg-slate-900/50 p-1 backdrop-blur-sm">
+              <button
+                onClick={() => setIsYearly(false)}
+                className={`rounded-full px-6 py-2 text-sm font-medium transition-all ${!isYearly ? "bg-indigo-500 text-white shadow-lg" : "text-slate-400 hover:text-white"}`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setIsYearly(true)}
+                className={`flex items-center gap-2 rounded-full px-6 py-2 text-sm font-medium transition-all ${isYearly ? "bg-indigo-500 text-white shadow-lg" : "text-slate-400 hover:text-white"}`}
+              >
+                Yearly
+                <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+                  2 Months Free
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-12 grid gap-8 sm:grid-cols-2 mx-auto max-w-3xl">
             {/* Free Plan */}
             <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-8">
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Free</p>
@@ -514,9 +527,12 @@ export default function LandingPage() {
                 Most Popular
               </div>
               <p className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Pro</p>
-              <div className="mt-4 flex items-baseline gap-1">
-                <span className="text-4xl font-extrabold text-white">$29</span>
-                <span className="text-sm text-slate-500">/month</span>
+              <div className="mt-4 flex flex-col gap-1">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-extrabold text-white">${isYearly ? "290" : "29"}</span>
+                  <span className="text-sm text-slate-500">{isYearly ? "/year" : "/month"}</span>
+                </div>
+                {isYearly && <p className="text-xs text-emerald-400 font-medium">Save $58 compared to monthly</p>}
               </div>
               <p className="mt-3 text-sm text-slate-400">For teams with multiple accounts and advanced needs.</p>
               <ul className="mt-6 space-y-3">
