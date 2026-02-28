@@ -71,8 +71,8 @@ export default function ComparePage() {
     useEffect(() => { load(); }, [load]);
 
     const filtered = data.filter((d) => selectedIds.includes(d.project.id));
-    const grandTotal = filtered.reduce((s, d) => s + (d.summary?.monthSpend ?? 0), 0);
-    const maxMonth = Math.max(...filtered.map((d) => d.summary?.monthSpend ?? 0), 1);
+    const grandTotal = filtered.reduce((s, d) => s + Number(d.summary?.monthSpend ?? 0), 0);
+    const maxMonth = Math.max(...filtered.map((d) => Number(d.summary?.monthSpend ?? 0)), 1);
 
     // Build unified date range for trend chart
     const allDates = new Set<string>();
@@ -142,8 +142,8 @@ export default function ComparePage() {
                                 );
                             }}
                             className={`flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition border ${isSelected
-                                    ? `${color.light} border-transparent ${color.text}`
-                                    : "bg-slate-900/40 border-slate-800 text-slate-500 hover:text-slate-300"
+                                ? `${color.light} border-transparent ${color.text}`
+                                : "bg-slate-900/40 border-slate-800 text-slate-500 hover:text-slate-300"
                                 }`}
                         >
                             <div className={`h-2.5 w-2.5 rounded-full ${isSelected ? color.dot : "bg-slate-700"}`} />
@@ -163,7 +163,7 @@ export default function ComparePage() {
                     <div className="grid gap-4 sm:grid-cols-3">
                         <StatCard
                             label="Total Today"
-                            value={`$${filtered.reduce((s, d) => s + (d.summary?.todaySpend ?? 0), 0).toFixed(2)}`}
+                            value={`$${filtered.reduce((s, d) => s + Number(d.summary?.todaySpend ?? 0), 0).toFixed(2)}`}
                             sub={`Across ${filtered.length} project${filtered.length > 1 ? "s" : ""}`}
                         />
                         <StatCard
@@ -173,7 +173,7 @@ export default function ComparePage() {
                         />
                         <StatCard
                             label="Total Forecast"
-                            value={`$${filtered.reduce((s, d) => s + (d.summary?.monthForecast ?? 0), 0).toFixed(2)}`}
+                            value={`$${filtered.reduce((s, d) => s + Number(d.summary?.monthForecast ?? 0), 0).toFixed(2)}`}
                             sub="Projected end-of-month"
                         />
                     </div>
@@ -186,7 +186,7 @@ export default function ComparePage() {
                             {filtered
                                 .sort((a, b) => (b.summary?.monthSpend ?? 0) - (a.summary?.monthSpend ?? 0))
                                 .map((d, i) => {
-                                    const spend = d.summary?.monthSpend ?? 0;
+                                    const spend = Number(d.summary?.monthSpend ?? 0);
                                     const pct = grandTotal > 0 ? (spend / grandTotal) * 100 : 0;
                                     const barW = maxMonth > 0 ? (spend / maxMonth) * 100 : 0;
                                     const color = getColor(allProjects.findIndex((p) => p.id === d.project.id));
@@ -316,9 +316,9 @@ export default function ComparePage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <CompRow label="Today's Spend" values={filtered.map((d) => d.summary?.todaySpend ?? 0)} />
-                                    <CompRow label="Month Spend" values={filtered.map((d) => d.summary?.monthSpend ?? 0)} highlight />
-                                    <CompRow label="Month Forecast" values={filtered.map((d) => d.summary?.monthForecast ?? 0)} />
+                                    <CompRow label="Today's Spend" values={filtered.map((d) => Number(d.summary?.todaySpend ?? 0))} />
+                                    <CompRow label="Month Spend" values={filtered.map((d) => Number(d.summary?.monthSpend ?? 0))} highlight />
+                                    <CompRow label="Month Forecast" values={filtered.map((d) => Number(d.summary?.monthForecast ?? 0))} />
                                     <CompRow label="Avg Daily (30d)" values={filtered.map((d) => {
                                         const days = Object.keys(d.dailyCosts).length || 1;
                                         const total = Object.values(d.dailyCosts).reduce((s, v) => s + v, 0);
