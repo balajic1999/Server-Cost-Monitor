@@ -13,17 +13,21 @@ import { docsRouter } from "./lib/swagger";
 import { prisma } from "./lib/prisma";
 import { requestIdMiddleware } from "./middleware/request-id.middleware";
 import { errorHandler } from "./middleware/error-handler.middleware";
+import { env } from "./config/env";
 
 export const app = express();
 
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: env.FRONTEND_URL,
+  credentials: true,
+}));
 app.use(requestIdMiddleware);
 
 // Stripe webhook needs raw body BEFORE json parsing
 app.use("/api/stripe/webhook", express.raw({ type: "application/json" }));
 
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -34,6 +38,11 @@ app.use(
 app.get("/health", async (_req, res) => {
   let dbStatus = "connected";
   try { await prisma.$queryRaw`SELECT 1`; } catch { dbStatus = "disconnected"; }
+
+  if (env.NODE_ENV === "production") {
+    return res.json({ status: dbStatus === "connected" ? "ok" : "error" });
+  }
+
   res.json({
     status: "ok",
     uptime: Math.floor(process.uptime()),

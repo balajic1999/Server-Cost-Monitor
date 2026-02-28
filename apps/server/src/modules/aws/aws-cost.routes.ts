@@ -1,11 +1,8 @@
 import { Router } from "express";
 import { z } from "zod";
 import { AuthedRequest, requireAuth } from "../../middleware/auth.middleware";
-import {
-    fetchAndStoreCosts,
-    getCostRecords,
-    getProjectCostSummary,
-} from "./aws-cost.service";
+import { fetchAndStoreCosts, getCostRecords, getProjectCostSummary } from "./aws-cost.service";
+import { prisma } from "../../lib/prisma";
 
 export const costRouter = Router();
 costRouter.use(requireAuth);
@@ -37,6 +34,11 @@ costRouter.post("/fetch", async (req: AuthedRequest, res) => {
             .json({ message: "Validation failed", errors: parsed.error.flatten() });
     }
 
+    const account = await prisma.cloudAccount.findFirst({
+        where: { id: parsed.data.cloudAccountId, userId: req.user!.sub },
+    });
+    if (!account) return res.status(404).json({ message: "Cloud account not found" });
+
     try {
         const result = await fetchAndStoreCosts(
             parsed.data.cloudAccountId,
@@ -61,6 +63,11 @@ costRouter.get("/", async (req: AuthedRequest, res) => {
             .json({ message: "Validation failed", errors: parsed.error.flatten() });
     }
 
+    const account = await prisma.cloudAccount.findFirst({
+        where: { id: parsed.data.cloudAccountId, userId: req.user!.sub },
+    });
+    if (!account) return res.status(404).json({ message: "Cloud account not found" });
+
     try {
         const records = await getCostRecords(
             parsed.data.cloudAccountId,
@@ -81,6 +88,11 @@ costRouter.get("/summary/:projectId", async (req: AuthedRequest, res) => {
     if (!projectId || projectId.length < 1) {
         return res.status(400).json({ message: "projectId is required" });
     }
+
+    const project = await prisma.project.findFirst({
+        where: { id: projectId, userId: req.user!.sub },
+    });
+    if (!project) return res.status(404).json({ message: "Project not found" });
 
     try {
         const summary = await getProjectCostSummary(projectId);

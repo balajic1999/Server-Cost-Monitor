@@ -73,13 +73,15 @@ export async function deleteCloudAccount(userId: string, accountId: string) {
 }
 
 /**
- * Retrieve decrypted credentials for a cloud account (internal use only).
+ * Retrieve decrypted credentials for a cloud account.
+ * Requires verification of ownership if userId is provided.
  */
-export async function getDecryptedCredentials(accountId: string) {
+export async function getDecryptedCredentials(accountId: string, userId?: string) {
     const account = await prisma.cloudAccount.findUnique({
         where: { id: accountId },
     });
     if (!account) throw new Error("Cloud account not found");
+    if (userId && account.userId !== userId) throw new Error("Not authorized");
 
     return {
         provider: account.provider,
