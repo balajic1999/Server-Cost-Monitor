@@ -347,6 +347,106 @@ function OverviewTab({ projectId }: { projectId: string }) {
                     {/* Cost chart with axis labels */}
                     <CostBarChart records={records} avgDailySpend={avgDailySpend} rangeLabel={rangeLabelMap[rangePreset]} />
 
+                    {/* Anomaly Detection */}
+                    {(() => {
+                        const anomalies: { type: string; severity: "high" | "medium" | "low"; title: string; desc: string }[] = [];
+
+                        // Detect daily spending spikes (> 1.5x 7-day moving average)
+                        const sortedDays = Object.entries(byDate).sort(([a], [b]) => a.localeCompare(b));
+                        sortedDays.forEach(([date, amount], idx) => {
+                            if (idx < 3) return; // need min history
+                            const window = sortedDays.slice(Math.max(0, idx - 7), idx);
+                            const windowAvg = window.reduce((s, [, v]) => s + v, 0) / window.length;
+                            if (windowAvg > 0 && amount > windowAvg * 1.5) {
+                                const pctAbove = ((amount / windowAvg - 1) * 100).toFixed(0);
+                                anomalies.push({
+                                    type: "spike",
+                                    severity: amount > windowAvg * 2 ? "high" : "medium",
+                                    title: `Spending spike on ${new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+                                    desc: `$${amount.toFixed(2)} — ${pctAbove}% above 7-day average ($${windowAvg.toFixed(2)})`,
+                                });
+                            }
+                        });
+
+                        // Detect services with first-time charges (new in last 3 days)
+                        if (sortedDays.length > 7) {
+                            const recentDates = new Set(sortedDays.slice(-3).map(([d]) => d));
+                            const olderDates = new Set(sortedDays.slice(0, -3).map(([d]) => d));
+                            const svcByDate = records.reduce<Record<string, Set<string>>>((acc, r) => {
+                                const d = r.periodStart.split("T")[0];
+                                if (!acc[d]) acc[d] = new Set();
+                                acc[d].add(r.serviceName);
+                                return acc;
+                            }, {});
+                            const oldServices = new Set<string>();
+                            for (const d of olderDates) {
+                                for (const svc of svcByDate[d] ?? []) oldServices.add(svc);
+                            }
+                            for (const d of recentDates) {
+                                for (const svc of svcByDate[d] ?? []) {
+                                    if (!oldServices.has(svc)) {
+                                        anomalies.push({
+                                            type: "new-service",
+                                            severity: "low",
+                                            title: `New service detected: ${svc}`,
+                                            desc: `First charges appeared on ${new Date(d + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}`,
+                                        });
+                                    }
+                                }
+                            }
+                        }
+
+                        // Top service concentration warning
+                        if (topServices.length > 0 && totalSpend > 0) {
+                            const topPct = (topServices[0][1] / totalSpend) * 100;
+                            if (topPct > 70) {
+                                anomalies.push({
+                                    type: "concentration",
+                                    severity: "medium",
+                                    title: `High cost concentration: ${topServices[0][0]}`,
+                                    desc: `${topPct.toFixed(0)}% of total spend comes from a single service. Consider optimization.`,
+                                });
+                            }
+                        }
+
+                        if (anomalies.length === 0) return null;
+
+                        const severityColors = {
+                            high: "border-red-500/30 bg-red-500/5 text-red-400",
+                            medium: "border-amber-500/30 bg-amber-500/5 text-amber-400",
+                            low: "border-blue-500/30 bg-blue-500/5 text-blue-400",
+                        };
+                        const severityIcons = {
+                            high: "🔴",
+                            medium: "🟡",
+                            low: "🔵",
+                        };
+
+                        return (
+                            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+                                <div className="mb-4 flex items-center justify-between">
+                                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                        <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                                        </svg>
+                                        Anomaly Detection
+                                    </h3>
+                                    <span className="text-xs text-slate-500">{anomalies.length} finding{anomalies.length !== 1 ? "s" : ""}</span>
+                                </div>
+                                <div className="space-y-2">
+                                    {anomalies.slice(0, 5).map((a, i) => (
+                                        <div key={i} className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${severityColors[a.severity]}`}>
+                                            <span className="mt-0.5 text-sm">{severityIcons[a.severity]}</span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-sm font-medium text-white">{a.title}</p>
+                                                <p className="text-xs text-slate-400 mt-0.5">{a.desc}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })()}
                     {/* Two-column layout: top services + daily breakdown */}
                     <div className="grid gap-6 lg:grid-cols-2">
                         {/* Top Services */}

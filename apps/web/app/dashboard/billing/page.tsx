@@ -8,6 +8,7 @@ import {
     createPortalSession,
     Subscription,
 } from "../../../lib/api";
+import { useToast } from "../../../contexts/ToastContext";
 
 const PLANS = [
     {
@@ -45,6 +46,7 @@ const PLANS = [
 
 export default function BillingPage() {
     const { token } = useAuth();
+    const { addToast } = useToast();
     const [subscription, setSubscription] = useState<Subscription | null>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
@@ -64,7 +66,7 @@ export default function BillingPage() {
             const { url } = await createCheckoutSession(token);
             if (url) window.location.href = url;
         } catch (err) {
-            alert((err as Error).message);
+            addToast("error", (err as Error).message);
         } finally {
             setActionLoading(false);
         }
@@ -77,7 +79,7 @@ export default function BillingPage() {
             const { url } = await createPortalSession(token);
             if (url) window.location.href = url;
         } catch (err) {
-            alert((err as Error).message);
+            addToast("error", (err as Error).message);
         } finally {
             setActionLoading(false);
         }
@@ -130,8 +132,8 @@ export default function BillingPage() {
                         <div
                             key={plan.key}
                             className={`relative rounded-2xl border p-6 transition-all ${plan.highlight
-                                    ? "border-indigo-500/50 bg-gradient-to-br from-indigo-500/10 to-violet-500/10 shadow-xl shadow-indigo-500/10"
-                                    : "border-slate-700/50 bg-slate-800/30"
+                                ? "border-indigo-500/50 bg-gradient-to-br from-indigo-500/10 to-violet-500/10 shadow-xl shadow-indigo-500/10"
+                                : "border-slate-700/50 bg-slate-800/30"
                                 }`}
                         >
                             {plan.highlight && (
