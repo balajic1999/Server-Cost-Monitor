@@ -347,6 +347,33 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ─── Founder's Note / Authenticity ─────────────────── */}
+      <section className="bg-gradient-to-b from-slate-900/30 to-indigo-950/20 py-24">
+        <div className="mx-auto max-w-4xl px-6">
+          <div className="rounded-3xl border border-indigo-500/20 bg-slate-900/60 p-8 sm:p-12 shadow-2xl relative overflow-hidden">
+            <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-indigo-500/20 blur-3xl" />
+
+            <div className="flex flex-col sm:flex-row gap-8 items-start">
+              <div className="flex-shrink-0">
+                <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=founder&backgroundColor=transparent`} alt="Founder" className="h-20 w-20 rounded-2xl border-2 border-indigo-500/30 bg-indigo-500/10 p-1" />
+              </div>
+              <div className="text-slate-300 space-y-4 leading-relaxed relative z-10">
+                <h3 className="text-xl font-bold text-white mb-2">Why I built CloudPulse</h3>
+                <p>
+                  "After receiving an unexpected $1,200 AWS bill for an idle side-project, I realized how broken cloud cost monitoring is for independent developers and small teams. The native tools are too complex, and enterprise solutions cost more than the infrastructure itself."
+                </p>
+                <p>
+                  "I built CloudPulse to be the tool I wish I had: simple to set up, secure by default, and proactive about warning you before disaster strikes. We don't have a giant sales team or fancy corporate logos yet, but what we do have is a deep commitment to treating your AWS credentials and data with the utmost respect."
+                </p>
+                <p className="pt-2 font-medium text-indigo-400">
+                  — The Maker of CloudPulse
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ─── How it Works ──────────────────────────────────── */}
       <section id="how-it-works" className="border-y border-slate-800/50 bg-slate-900/30 py-24">
         <div className="mx-auto max-w-6xl px-6">
@@ -535,6 +562,10 @@ export default function LandingPage() {
               {
                 q: "Can I cancel at any time?",
                 a: "Yes, you can cancel your Pro subscription directly from your settings dashboard at any time. There are no long-term contracts."
+              },
+              {
+                q: "What about my data? Am I locked in?",
+                a: "Absolutely not. You own your data. You can export your entire cost history as a CSV file at any time. If you choose to delete your account, we instantly and permanently erase all your encrypted credentials, alert rules, and synced cost data."
               }
             ].map((faq, i) => (
               <div key={i} className="rounded-2xl border border-slate-800 bg-slate-950 p-6">
