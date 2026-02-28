@@ -114,35 +114,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── Trusted Numbers & Logos ──────────────────────── */}
-      <section className="border-y border-slate-800/50 bg-slate-900/30 py-12">
-        <div className="mx-auto max-w-6xl px-6 text-center">
-          <p className="mb-8 text-sm font-medium uppercase tracking-widest text-slate-500">
-            Trusted by engineering teams at innovative companies
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all duration-300">
-            <div className="flex items-center gap-2 text-xl font-bold font-serif italic"><div className="h-6 w-6 rounded bg-indigo-500"></div>AcmeCorp</div>
-            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter"><div className="h-6 w-6 rotate-45 bg-emerald-500"></div>TECHNOVA</div>
-            <div className="flex items-center gap-2 text-xl font-mono uppercase"><div className="h-6 w-6 rounded-full bg-blue-500"></div>SysGlobal</div>
-            <div className="flex items-center gap-2 text-2xl font-bold text-slate-300"><div className="h-6 w-2 bg-rose-500"></div><div className="h-6 w-2 bg-rose-500"></div>NexaByte</div>
-            <div className="hidden sm:flex items-center gap-2 text-xl font-light tracking-widest"><div className="h-4 w-4 rounded-full border-2 border-amber-500"></div>CLOUDSCALE</div>
-          </div>
-
-          <div className="mt-16 mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-8 sm:gap-12">
-            {[
-              { value: "$2.4M+", label: "Cloud costs tracked" },
-              { value: "500+", label: "Alert rules active" },
-              { value: "99.9%", label: "Uptime SLA" },
-              { value: "<5min", label: "Setup time" },
-            ].map((stat) => (
-              <div key={stat.label}>
-                <p className="text-2xl font-bold text-white">{stat.value}</p>
-                <p className="mt-1 text-xs text-slate-500">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ─── Features Grid ─────────────────────────────────── */}
       <section id="features" className="py-24">
@@ -539,52 +510,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── Testimonials ─────────────────────────────────── */}
-      <section className="border-y border-slate-800/50 bg-slate-900/30 py-24">
-        <div className="mx-auto max-w-6xl px-6">
-          <div className="text-center mb-16">
-            <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400">Testimonials</p>
-            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Loved by engineering teams</h2>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-3">
-            {[
-              {
-                quote: "CloudPulse caught a $2,000 EC2 spike before it ruined our monthly budget. The anomaly detection is incredibly accurate.",
-                name: "Sarah Chen",
-                role: "CTO, Stackvista",
-              },
-              {
-                quote: "We switched from manual spreadsheets to CloudPulse and saved 6 hours per week on cost reporting. The CSV export feature is a lifesaver.",
-                name: "Mark Rodriguez",
-                role: "DevOps Lead, Cloudway",
-              },
-              {
-                quote: "The Slack alerts are perfectly formatted and tell us exactly what we need to know. Our team catches budget overruns within minutes now.",
-                name: "Priya Sharma",
-                role: "Engineering Manager, NexaByte",
-              },
-            ].map((t) => (
-              <div key={t.name} className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6">
-                <div className="mb-4 flex gap-0.5">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="h-4 w-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                </div>
-                <p className="text-sm text-slate-300 leading-relaxed italic">&ldquo;{t.quote}&rdquo;</p>
-                <div className="mt-4 flex items-center gap-3">
-                  <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${t.name}&backgroundColor=transparent`} alt={t.name} className="h-10 w-10 rounded-full border border-slate-700 bg-slate-800/80" />
-                  <div>
-                    <p className="text-sm font-medium text-white">{t.name}</p>
-                    <p className="text-xs text-slate-500">{t.role}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ─── FAQ ──────────────────────────────────────────── */}
       <section className="border-t border-slate-800/50 bg-slate-900/30 py-24">
