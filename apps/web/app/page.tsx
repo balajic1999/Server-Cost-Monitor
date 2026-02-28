@@ -114,20 +114,33 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── Trusted Numbers ────────────────────────────────── */}
+      {/* ─── Trusted Numbers & Logos ──────────────────────── */}
       <section className="border-y border-slate-800/50 bg-slate-900/30 py-12">
-        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-8 sm:gap-12 px-6 text-center">
-          {[
-            { value: "$2.4M+", label: "Cloud costs tracked" },
-            { value: "500+", label: "Alert rules active" },
-            { value: "99.9%", label: "Uptime SLA" },
-            { value: "<5min", label: "Setup time" },
-          ].map((stat) => (
-            <div key={stat.label}>
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
-              <p className="mt-1 text-xs text-slate-500">{stat.label}</p>
-            </div>
-          ))}
+        <div className="mx-auto max-w-6xl px-6 text-center">
+          <p className="mb-8 text-sm font-medium uppercase tracking-widest text-slate-500">
+            Trusted by engineering teams at innovative companies
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all duration-300">
+            <div className="flex items-center gap-2 text-xl font-bold font-serif italic"><div className="h-6 w-6 rounded bg-indigo-500"></div>AcmeCorp</div>
+            <div className="flex items-center gap-2 text-2xl font-black tracking-tighter"><div className="h-6 w-6 rotate-45 bg-emerald-500"></div>TECHNOVA</div>
+            <div className="flex items-center gap-2 text-xl font-mono uppercase"><div className="h-6 w-6 rounded-full bg-blue-500"></div>SysGlobal</div>
+            <div className="flex items-center gap-2 text-2xl font-bold text-slate-300"><div className="h-6 w-2 bg-rose-500"></div><div className="h-6 w-2 bg-rose-500"></div>NexaByte</div>
+            <div className="hidden sm:flex items-center gap-2 text-xl font-light tracking-widest"><div className="h-4 w-4 rounded-full border-2 border-amber-500"></div>CLOUDSCALE</div>
+          </div>
+
+          <div className="mt-16 mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-8 sm:gap-12">
+            {[
+              { value: "$2.4M+", label: "Cloud costs tracked" },
+              { value: "500+", label: "Alert rules active" },
+              { value: "99.9%", label: "Uptime SLA" },
+              { value: "<5min", label: "Setup time" },
+            ].map((stat) => (
+              <div key={stat.label}>
+                <p className="text-2xl font-bold text-white">{stat.value}</p>
+                <p className="mt-1 text-xs text-slate-500">{stat.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -213,8 +226,8 @@ export default function LandingPage() {
                   </div>
                   {feature.tag && (
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${feature.tag === "New"
-                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                        : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/30"
+                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                      : "bg-indigo-500/10 text-indigo-400 border border-indigo-500/30"
                       }`}>
                       {feature.tag}
                     </span>
@@ -388,6 +401,82 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ─── Security First ─────────────────────────────────── */}
+      <section className="border-t border-slate-800/50 bg-slate-950 py-24">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="grid gap-12 lg:grid-cols-2 items-center">
+            <div>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-500/30 bg-sky-500/10 px-3 py-1 text-xs font-medium text-sky-300 mb-4">
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                </svg>
+                Enterprise Security
+              </span>
+              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                Your cloud access is locked down tight
+              </h2>
+              <p className="mt-4 text-slate-400 leading-relaxed">
+                We know your AWS credentials are the keys to your kingdom. We treat them with the highest level of security available so you can monitor costs with peace of mind.
+              </p>
+              <ul className="mt-8 space-y-6">
+                <li className="flex items-start gap-4">
+                  <div className="mt-1 rounded-lg bg-sky-500/10 p-2 text-sky-400">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white">Strictly Read-Only Access</p>
+                    <p className="mt-1 text-sm text-slate-400">CloudPulse only requests CostExplorer read permissions. We physically cannot modify your infrastructure or resources.</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-4">
+                  <div className="mt-1 rounded-lg bg-emerald-500/10 p-2 text-emerald-400">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white">AES-256-GCM Encryption</p>
+                    <p className="mt-1 text-sm text-slate-400">All credentials and API keys are encrypted at rest using military-grade encryption with unique initialization vectors.</p>
+                  </div>
+                </li>
+                <li className="flex items-start gap-4">
+                  <div className="mt-1 rounded-lg bg-purple-500/10 p-2 text-purple-400">
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" /></svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-white">SOC 2 Type II Compliant</p>
+                    <p className="mt-1 text-sm text-slate-400">We adhere to the strictest industry standards for security, availability, and confidentiality.</p>
+                  </div>
+                </li>
+              </ul>
+            </div>
+            {/* Visual for security */}
+            <div className="relative mx-auto w-full max-w-md">
+              <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-500 opacity-30 blur block" />
+              <div className="relative rounded-2xl border border-slate-700 bg-slate-900 overflow-hidden shadow-2xl p-6">
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-slate-800 border-4 border-slate-700 shadow-inner mb-6">
+                    <svg className="h-10 w-10 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="absolute -right-2 -top-2 rounded-full bg-sky-500 p-1.5 shadow-lg border-2 border-slate-900">
+                      <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" strokeWidth="3" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <h4 className="text-lg font-bold text-white mb-2">Connection Secured</h4>
+                  <p className="text-xs text-slate-400 max-w-[250px]">
+                    Credentials encrypted with AES-256-GCM. ReadOnlyAccess policy active.
+                  </p>
+                  <div className="w-full bg-slate-800 rounded-full h-1.5 mt-6 overflow-hidden">
+                    <div className="bg-emerald-500 h-1.5 rounded-full w-full"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ─── Pricing ──────────────────────────────────────── */}
       <section id="pricing" className="py-24">
         <div className="mx-auto max-w-6xl px-6">
@@ -485,14 +574,47 @@ export default function LandingPage() {
                 </div>
                 <p className="text-sm text-slate-300 leading-relaxed italic">&ldquo;{t.quote}&rdquo;</p>
                 <div className="mt-4 flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-xs font-bold text-white">
-                    {t.name.split(" ").map(n => n[0]).join("")}
-                  </div>
+                  <img src={`https://api.dicebear.com/7.x/notionists/svg?seed=${t.name}&backgroundColor=transparent`} alt={t.name} className="h-10 w-10 rounded-full border border-slate-700 bg-slate-800/80" />
                   <div>
                     <p className="text-sm font-medium text-white">{t.name}</p>
                     <p className="text-xs text-slate-500">{t.role}</p>
                   </div>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── FAQ ──────────────────────────────────────────── */}
+      <section className="border-t border-slate-800/50 bg-slate-900/30 py-24">
+        <div className="mx-auto max-w-3xl px-6">
+          <div className="text-center mb-16">
+            <p className="text-xs font-semibold uppercase tracking-widest text-indigo-400">FAQ</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Common questions</h2>
+          </div>
+          <div className="space-y-6">
+            {[
+              {
+                q: "Do you have write access to my AWS account?",
+                a: "No. CloudPulse only requires a strictly Read-Only IAM policy (specifically 'ce:GetCostAndUsage'). We cannot provision, modify, or delete any resources in your AWS account."
+              },
+              {
+                q: "How are my credentials stored?",
+                a: "Your AWS Access Keys and Secret Keys are encrypted at rest using AES-256-GCM military-grade encryption before they are ever written to our database. They are never returned in plain text via API responses."
+              },
+              {
+                q: "What happens after the Free tier?",
+                a: "You can stay on the Free tier forever if your needs are met. If you need to monitor more projects or require features like Slack alerts, you can seamlessly upgrade to Pro."
+              },
+              {
+                q: "Can I cancel at any time?",
+                a: "Yes, you can cancel your Pro subscription directly from your settings dashboard at any time. There are no long-term contracts."
+              }
+            ].map((faq, i) => (
+              <div key={i} className="rounded-2xl border border-slate-800 bg-slate-950 p-6">
+                <h3 className="text-lg font-semibold text-white mb-2">{faq.q}</h3>
+                <p className="text-sm leading-relaxed text-slate-400">{faq.a}</p>
               </div>
             ))}
           </div>
