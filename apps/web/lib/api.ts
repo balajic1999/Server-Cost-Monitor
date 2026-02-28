@@ -289,3 +289,16 @@ export function changePassword(token: string, data: { currentPassword: string; n
         body: JSON.stringify(data),
     });
 }
+
+// ── Activity Log ────────────────────────────────────
+
+export interface ActivityLogEntry {
+    id: string;
+    action: string;
+    details: Record<string, any>;
+    createdAt: string;
+}
+
+export function getActivityLog(token: string, limit = 50) {
+    return apiFetch<ActivityLogEntry[]>(`/api/activity?limit=${limit}`, { token });
+}

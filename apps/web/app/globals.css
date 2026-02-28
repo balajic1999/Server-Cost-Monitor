@@ -6,6 +6,35 @@ body {
   @apply bg-slate-950 text-slate-100;
 }
 
+/* Light mode overrides */
+html.light body {
+  background-color: #f8fafc;
+  color: #1e293b;
+}
+html.light .bg-slate-950 { background-color: #f8fafc; }
+html.light .bg-slate-900 { background-color: #ffffff; }
+html.light .bg-slate-900\/95 { background-color: rgba(255,255,255,0.97); }
+html.light .bg-slate-900\/60 { background-color: rgba(255,255,255,0.7); }
+html.light .bg-slate-900\/70 { background-color: rgba(255,255,255,0.8); }
+html.light .bg-slate-900\/80 { background-color: rgba(255,255,255,0.9); }
+html.light .bg-slate-900\/50 { background-color: rgba(255,255,255,0.6); }
+html.light .bg-slate-900\/40 { background-color: rgba(255,255,255,0.5); }
+html.light .bg-slate-900\/30 { background-color: rgba(248,250,252,0.5); }
+html.light .bg-slate-800 { background-color: #f1f5f9; }
+html.light .bg-slate-800\/50 { background-color: rgba(241,245,249,0.5); }
+html.light .bg-slate-800\/30 { background-color: rgba(241,245,249,0.3); }
+html.light .bg-slate-950\/80 { background-color: rgba(255,255,255,0.85); }
+html.light .text-white { color: #0f172a; }
+html.light .text-slate-100 { color: #1e293b; }
+html.light .text-slate-300 { color: #475569; }
+html.light .text-slate-400 { color: #64748b; }
+html.light .text-slate-500 { color: #94a3b8; }
+html.light .text-slate-600 { color: #94a3b8; }
+html.light .border-slate-800 { border-color: #e2e8f0; }
+html.light .border-slate-800\/50 { border-color: rgba(226,232,240,0.5); }
+html.light .border-slate-700 { border-color: #e2e8f0; }
+html.light .divide-slate-800 > * + * { border-color: #e2e8f0; }
+
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(16px) scale(0.95); }
   to   { opacity: 1; transform: translateY(0) scale(1); }

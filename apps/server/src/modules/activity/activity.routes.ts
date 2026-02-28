@@ -1,0 +1,15 @@
+import { Router } from "express";
+import { requireAuth, AuthedRequest } from "../../middleware/auth.middleware";
+import { getActivity } from "./activity.service";
+
+export const activityRouter = Router();
+
+activityRouter.get("/", requireAuth, async (req: AuthedRequest, res) => {
+    try {
+        const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+        const logs = await getActivity(req.userId!, limit);
+        res.json(logs);
+    } catch (err) {
+        res.status(500).json({ error: (err as Error).message });
+    }
+});
