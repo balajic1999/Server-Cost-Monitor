@@ -9,12 +9,16 @@ import { costRouter } from "./modules/aws/aws-cost.routes";
 import { alertRouter } from "./modules/alerts/alert.routes";
 import { stripeRouter } from "./modules/stripe/stripe.routes";
 import { activityRouter } from "./modules/activity/activity.routes";
+import { docsRouter } from "./lib/swagger";
 import { prisma } from "./lib/prisma";
+import { requestIdMiddleware } from "./middleware/request-id.middleware";
+import { errorHandler } from "./middleware/error-handler.middleware";
 
 export const app = express();
 
 app.use(helmet());
 app.use(cors());
+app.use(requestIdMiddleware);
 
 // Stripe webhook needs raw body BEFORE json parsing
 app.use("/api/stripe/webhook", express.raw({ type: "application/json" }));
@@ -45,4 +49,8 @@ app.use("/api/costs", costRouter);
 app.use("/api/alerts", alertRouter);
 app.use("/api/stripe", stripeRouter);
 app.use("/api/activity", activityRouter);
+app.use("/api/docs", docsRouter);
+
+// Global error handler (must be LAST middleware)
+app.use(errorHandler);
 

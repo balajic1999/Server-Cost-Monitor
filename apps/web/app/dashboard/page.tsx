@@ -148,6 +148,65 @@ export default function DashboardPage() {
                 </div>
             )}
 
+            {/* Quick Insights */}
+            {projects.length > 0 && Object.keys(summaries).length > 0 && (() => {
+                // Top spending project
+                const topProject = projects.reduce((best, p) => {
+                    const spend = Number(summaries[p.id]?.monthSpend ?? 0);
+                    const bestSpend = Number(summaries[best.id]?.monthSpend ?? 0);
+                    return spend > bestSpend ? p : best;
+                }, projects[0]);
+                const topSpend = Number(summaries[topProject.id]?.monthSpend ?? 0);
+
+                // Highest today spend
+                const highestToday = projects.reduce((best, p) => {
+                    const spend = Number(summaries[p.id]?.todaySpend ?? 0);
+                    const bestSpend = Number(summaries[best.id]?.todaySpend ?? 0);
+                    return spend > bestSpend ? p : best;
+                }, projects[0]);
+                const todayMax = Number(summaries[highestToday.id]?.todaySpend ?? 0);
+
+                // Services count
+                const totalServices = Object.values(summaries).reduce(
+                    (s, v) => s + (v.serviceCount ?? 0), 0
+                );
+
+                return (
+                    <div className="grid gap-4 sm:grid-cols-3">
+                        <div className="rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-transparent p-4">
+                            <div className="flex items-center gap-2 text-xs text-indigo-400 font-medium mb-2">
+                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+                                </svg>
+                                Top Spender
+                            </div>
+                            <p className="text-lg font-bold text-white">{topProject.name}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">${topSpend.toFixed(2)} this month</p>
+                        </div>
+                        <div className="rounded-xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-transparent p-4">
+                            <div className="flex items-center gap-2 text-xs text-amber-400 font-medium mb-2">
+                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Highest Today
+                            </div>
+                            <p className="text-lg font-bold text-white">{highestToday.name}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">${todayMax.toFixed(2)} so far today</p>
+                        </div>
+                        <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-transparent p-4">
+                            <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium mb-2">
+                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L12 12.75 6.429 9.75M12 12.75l5.571 3m-5.571-3v6.75m5.571-3L21.75 12l-4.179-2.25" />
+                                </svg>
+                                Active Services
+                            </div>
+                            <p className="text-lg font-bold text-white">{totalServices}</p>
+                            <p className="text-xs text-slate-400 mt-0.5">across all projects</p>
+                        </div>
+                    </div>
+                );
+            })()}
+
             {/* Projects section */}
             <div>
                 <h2 className="mb-4 text-lg font-semibold text-white">Your Projects</h2>
