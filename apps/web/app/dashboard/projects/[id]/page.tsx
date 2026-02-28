@@ -12,9 +12,8 @@ import {
     getAlertHistory, AlertSent,
 } from "../../../../lib/api";
 import { useToast } from "../../../../contexts/ToastContext";
-import ComparisonTab from "./ComparisonTab";
 
-type Tab = "overview" | "accounts" | "alerts" | "compare";
+type Tab = "overview" | "accounts" | "alerts";
 
 export default function ProjectDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -70,13 +69,6 @@ export default function ProjectDetailPage() {
                 </svg>
             ),
         },
-        {
-            key: "compare", label: "Compare", icon: (
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
-                </svg>
-            ),
-        },
     ];
 
     return (
@@ -110,7 +102,6 @@ export default function ProjectDetailPage() {
             {tab === "overview" && <OverviewTab projectId={id} />}
             {tab === "accounts" && <AccountsTab projectId={id} />}
             {tab === "alerts" && <AlertsTab projectId={id} />}
-            {tab === "compare" && <ComparisonTab projectId={id} />}
         </div>
     );
 }
