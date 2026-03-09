@@ -17,6 +17,9 @@ import { env } from "./config/env";
 
 export const app = express();
 
+// Trust first proxy (required for correct rate limiting behind Nginx / load balancers)
+app.set("trust proxy", 1);
+
 app.use(helmet());
 app.use(cors({
   origin: env.FRONTEND_URL,

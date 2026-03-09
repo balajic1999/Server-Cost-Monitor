@@ -302,3 +302,19 @@ export interface ActivityLogEntry {
 export function getActivityLog(token: string, limit = 50) {
     return apiFetch<ActivityLogEntry[]>(`/api/activity?limit=${limit}`, { token });
 }
+
+// ── Password Reset ──────────────────────────────────
+
+export function forgotPassword(email: string) {
+    return apiFetch<{ message: string; resetToken?: string }>("/api/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+    });
+}
+
+export function resetPasswordApi(token: string, newPassword: string) {
+    return apiFetch<{ message: string }>("/api/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({ token, newPassword }),
+    });
+}

@@ -2,8 +2,8 @@ import { Router } from "express";
 import bcrypt from "bcrypt";
 import { prisma } from "../../lib/prisma";
 import { AuthedRequest, requireAuth } from "../../middleware/auth.middleware";
-import { loginUser, registerUser } from "./auth.service";
-import { loginSchema, registerSchema } from "./auth.schema";
+import { loginUser, registerUser, requestPasswordReset, resetPassword } from "./auth.service";
+import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema } from "./auth.schema";
 import { z } from "zod";
 import { rateLimit } from "../../middleware/rate-limit.middleware";
 
@@ -118,4 +118,48 @@ authRouter.put("/me/password", requireAuth, async (req: AuthedRequest, res) => {
   });
 
   return res.json({ message: "Password updated successfully" });
+});
+
+// ── Forgot password (public) ─────────────────────────────
+const forgotPasswordLimiter = rateLimit(15 * 60 * 1000, 5); // 5 attempts per 15 min
+
+authRouter.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
+  const parsed = forgotPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ message: "Validation failed", errors: parsed.error.flatten() });
+  }
+
+  try {
+    const result = await requestPasswordReset(parsed.data.email);
+
+    // In development, return the token for testing
+    if (process.env.NODE_ENV !== "production" && result.token) {
+      return res.json({
+        message: "If that email is registered, a reset link has been sent.",
+        resetToken: result.token,
+      });
+    }
+
+    // Always return success to prevent user enumeration
+    return res.json({ message: "If that email is registered, a reset link has been sent." });
+  } catch (error) {
+    return res.status(500).json({ message: (error as Error).message });
+  }
+});
+
+// ── Reset password (public) ──────────────────────────────
+const resetPasswordLimiter = rateLimit(15 * 60 * 1000, 5);
+
+authRouter.post("/reset-password", resetPasswordLimiter, async (req, res) => {
+  const parsed = resetPasswordSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ message: "Validation failed", errors: parsed.error.flatten() });
+  }
+
+  try {
+    await resetPassword(parsed.data.token, parsed.data.newPassword);
+    return res.json({ message: "Password has been reset successfully. You can now log in." });
+  } catch (error) {
+    return res.status(400).json({ message: (error as Error).message });
+  }
 });

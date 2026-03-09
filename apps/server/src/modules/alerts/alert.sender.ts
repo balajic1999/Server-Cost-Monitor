@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { env } from "../../config/env";
+import { logger } from "../../lib/logger";
 
 interface AlertEmailPayload {
   to: string;
@@ -128,11 +129,11 @@ export async function sendSlackAlert(data: SlackAlertPayload): Promise<void> {
 
   if (!response.ok) {
     const text = await response.text();
-    console.error(`[Alert] Slack webhook failed (${response.status}): ${text}`);
+    logger.error(`Slack webhook failed (${response.status}): ${text}`);
     throw new Error(`Slack webhook failed: ${response.status}`);
   }
 
-  console.log(`[Alert] Slack notification sent to ${data.projectName}`);
+  logger.info(`Slack notification sent to ${data.projectName}`);
 }
 
 /**
@@ -164,7 +165,7 @@ async function getTransporter() {
     },
   });
 
-  console.log("[Alert] Using Ethereal test email. Preview at https://ethereal.email");
+  logger.info("Using Ethereal test email. Preview at https://ethereal.email");
   return transport;
 }
 

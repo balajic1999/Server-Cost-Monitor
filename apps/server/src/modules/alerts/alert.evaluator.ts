@@ -1,6 +1,8 @@
 import { prisma } from "../../lib/prisma";
+import { logger } from "../../lib/logger";
 import { getProjectCostSummary } from "../aws/aws-cost.service";
 import { sendAlertEmail, sendSlackAlert } from "./alert.sender";
+import { decryptWebhookUrl } from "./alert.service";
 
 interface AlertTrigger {
     ruleId: string;
@@ -99,22 +101,25 @@ export async function evaluateAlerts(projectId: string): Promise<AlertTrigger[]>
                 });
                 channelsSent.push("EMAIL");
             } catch (err) {
-                console.error(`[Alert] Email send failed: ${(err as Error).message}`);
+                logger.error(`Email send failed: ${(err as Error).message}`);
             }
         }
 
         // Send Slack notification if webhook URL is configured
         if (rule.slackWebhookUrl) {
-            try {
-                await sendSlackAlert({
-                    webhookUrl: rule.slackWebhookUrl,
-                    projectName: project.name,
-                    reason: trigger.reason,
-                    payload: trigger.payload,
-                });
-                channelsSent.push("SLACK");
-            } catch (err) {
-                console.error(`[Alert] Slack send failed: ${(err as Error).message}`);
+            const webhookUrl = decryptWebhookUrl(rule.slackWebhookUrl);
+            if (webhookUrl) {
+                try {
+                    await sendSlackAlert({
+                        webhookUrl,
+                        projectName: project.name,
+                        reason: trigger.reason,
+                        payload: trigger.payload,
+                    });
+                    channelsSent.push("SLACK");
+                } catch (err) {
+                    logger.error(`Slack send failed: ${(err as Error).message}`);
+                }
             }
         }
 

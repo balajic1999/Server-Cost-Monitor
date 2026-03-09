@@ -101,3 +101,67 @@ costRouter.get("/summary/:projectId", async (req: AuthedRequest, res) => {
         return res.status(500).json({ message: (error as Error).message });
     }
 });
+
+/**
+ * GET /api/costs/compare?projectIds=id1,id2&days=30
+ * Batch cost records for multiple projects in one query (reduces N+1 from frontend).
+ */
+costRouter.get("/compare", async (req: AuthedRequest, res) => {
+    const projectIds = (req.query.projectIds as string)?.split(",").filter(Boolean);
+    const days = parseInt(req.query.days as string) || 30;
+
+    if (!projectIds?.length) {
+        return res.status(400).json({ message: "projectIds query param required (comma-separated)" });
+    }
+
+    if (projectIds.length > 20) {
+        return res.status(400).json({ message: "Maximum 20 projects allowed per compare request" });
+    }
+
+    // Verify all projects belong to the authenticated user
+    const projects = await prisma.project.findMany({
+        where: { id: { in: projectIds }, userId: req.user!.sub },
+        select: { id: true, name: true },
+    });
+
+    if (projects.length !== projectIds.length) {
+        return res.status(403).json({ message: "Unauthorized access to one or more projects" });
+    }
+
+    const startDate = new Date(Date.now() - days * 86400000);
+
+    try {
+        const records = await prisma.costRecord.findMany({
+            where: {
+                projectId: { in: projectIds },
+                periodStart: { gte: startDate },
+            },
+            select: {
+                projectId: true,
+                serviceName: true,
+                amount: true,
+                currency: true,
+                periodStart: true,
+                periodEnd: true,
+            },
+            orderBy: { periodStart: "asc" },
+        });
+
+        // Also fetch summary for each project
+        const summaries = await Promise.all(
+            projectIds.map(async (id) => ({
+                projectId: id,
+                ...(await getProjectCostSummary(id)),
+            }))
+        );
+
+        return res.json({
+            projects,
+            records,
+            summaries,
+            meta: { days, startDate: startDate.toISOString().split("T")[0], endDate: new Date().toISOString().split("T")[0] },
+        });
+    } catch (error) {
+        return res.status(500).json({ message: (error as Error).message });
+    }
+});
