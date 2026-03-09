@@ -31,23 +31,23 @@ function relativeTime(dateStr: string): string {
 }
 
 export default function ActivityPage() {
-    const { token } = useAuth();
+
     const [logs, setLogs] = useState<ActivityLogEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<string>("ALL");
 
     const load = useCallback(async () => {
-        if (!token) return;
+
         setLoading(true);
         try {
-            const data = await getActivityLog(token, 100);
+            const data = await getActivityLog(100);
             setLogs(data);
         } catch {
             // ignore
         } finally {
             setLoading(false);
         }
-    }, [token]);
+    }, []);
 
     useEffect(() => { load(); }, [load]);
 
@@ -77,8 +77,8 @@ export default function ActivityPage() {
                 <button
                     onClick={() => setFilter("ALL")}
                     className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${filter === "ALL"
-                            ? "bg-indigo-600 text-white shadow-sm"
-                            : "text-slate-400 bg-slate-800 hover:text-white"
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "text-slate-400 bg-slate-800 hover:text-white"
                         }`}
                 >
                     All ({logs.length})
@@ -91,8 +91,8 @@ export default function ActivityPage() {
                             key={action}
                             onClick={() => setFilter(action)}
                             className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${filter === action
-                                    ? "bg-indigo-600 text-white shadow-sm"
-                                    : "text-slate-400 bg-slate-800 hover:text-white"
+                                ? "bg-indigo-600 text-white shadow-sm"
+                                : "text-slate-400 bg-slate-800 hover:text-white"
                                 }`}
                         >
                             {meta.icon} {meta.label} ({count})

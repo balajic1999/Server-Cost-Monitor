@@ -24,7 +24,7 @@ interface ProjectData {
 type RangePreset = "7d" | "14d" | "30d" | "90d";
 
 export default function ComparePage() {
-    const { token } = useAuth();
+
     const [data, setData] = useState<ProjectData[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -38,10 +38,10 @@ export default function ComparePage() {
     }
 
     const load = useCallback(async () => {
-        if (!token) return;
+
         setLoading(true);
         try {
-            const projects = await listProjects(token);
+            const projects = await listProjects();
             setAllProjects(projects);
 
             const days = getDaysFromPreset(rangePreset);
@@ -52,12 +52,12 @@ export default function ComparePage() {
                     let summary: CostSummary | null = null;
                     let records: CostRecord[] = [];
                     try {
-                        summary = await getProjectCostSummary(token, project.id);
+                        summary = await getProjectCostSummary(project.id);
                     } catch { /* empty */ }
                     try {
-                        const accounts = await listCloudAccounts(token, project.id);
+                        const accounts = await listCloudAccounts(project.id);
                         const allRecords = await Promise.all(
-                            accounts.map((a) => getCostRecords(token, a.id, startDate).catch(() => [] as CostRecord[]))
+                            accounts.map((a) => getCostRecords(a.id, startDate).catch(() => [] as CostRecord[]))
                         );
                         records = allRecords.flat();
                     } catch { /* empty */ }
@@ -94,7 +94,7 @@ export default function ComparePage() {
         } finally {
             setLoading(false);
         }
-    }, [token, rangePreset]);
+    }, [rangePreset]);
 
     useEffect(() => { load(); }, [load]);
 

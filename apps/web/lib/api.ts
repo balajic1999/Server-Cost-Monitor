@@ -1,18 +1,64 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
-type FetchOptions = RequestInit & { token?: string };
+type FetchOptions = Omit<RequestInit, "credentials">;
 
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+/**
+ * Attempt to refresh the access token using the refresh cookie.
+ * Returns true if refresh succeeded, false otherwise.
+ */
+async function tryRefresh(): Promise<boolean> {
+    // Deduplicate concurrent refresh attempts
+    if (isRefreshing && refreshPromise) {
+        return refreshPromise;
+    }
+    isRefreshing = true;
+    refreshPromise = (async () => {
+        try {
+            const res = await fetch(`${API_BASE}/api/auth/refresh`, {
+                method: "POST",
+                credentials: "include",
+            });
+            return res.ok;
+        } catch {
+            return false;
+        } finally {
+            isRefreshing = false;
+            refreshPromise = null;
+        }
+    })();
+    return refreshPromise;
+}
+
+/**
+ * Core API fetch function.
+ * - Uses credentials: 'include' to send httpOnly cookies automatically
+ * - Auto-refreshes on 401 responses (transparent to callers)
+ */
 async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promise<T> {
-    const { token, headers, ...rest } = opts;
+    const { headers, ...rest } = opts;
 
-    const res = await fetch(`${API_BASE}${path}`, {
-        headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...headers,
-        },
-        ...rest,
-    });
+    const doFetch = () =>
+        fetch(`${API_BASE}${path}`, {
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+                ...headers,
+            },
+            ...rest,
+        });
+
+    let res = await doFetch();
+
+    // Auto-refresh on 401 (token expired)
+    if (res.status === 401 && !path.includes("/auth/refresh") && !path.includes("/auth/login")) {
+        const refreshed = await tryRefresh();
+        if (refreshed) {
+            res = await doFetch(); // Retry with new token
+        }
+    }
 
     const body = await res.json();
 
@@ -26,7 +72,6 @@ async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promise<T> {
 // ── Auth ────────────────────────────────────────────
 
 export interface AuthResponse {
-    token: string;
     user: { id: string; email: string; name: string };
 }
 
@@ -44,11 +89,22 @@ export function login(data: { email: string; password: string }) {
     });
 }
 
-export function getMe(token: string) {
+export function getMe() {
     return apiFetch<{ id: string; email: string; name: string; createdAt: string }>(
-        "/api/auth/me",
-        { token }
+        "/api/auth/me"
     );
+}
+
+export function refreshAuth() {
+    return apiFetch<AuthResponse>("/api/auth/refresh", {
+        method: "POST",
+    });
+}
+
+export function logoutApi() {
+    return apiFetch<{ message: string }>("/api/auth/logout", {
+        method: "POST",
+    });
 }
 
 // ── Projects ────────────────────────────────────────
@@ -68,34 +124,31 @@ export interface Project {
     _count: { costRecords: number; alertRules: number };
 }
 
-export function listProjects(token: string) {
-    return apiFetch<Project[]>("/api/projects", { token });
+export function listProjects() {
+    return apiFetch<Project[]>("/api/projects");
 }
 
-export function getProject(token: string, id: string) {
-    return apiFetch<Project>(`/api/projects/${id}`, { token });
+export function getProject(id: string) {
+    return apiFetch<Project>(`/api/projects/${id}`);
 }
 
-export function createProject(token: string, data: { name: string; timezone?: string }) {
+export function createProject(data: { name: string; timezone?: string }) {
     return apiFetch<Project>("/api/projects", {
         method: "POST",
-        token,
         body: JSON.stringify(data),
     });
 }
 
-export function updateProject(token: string, id: string, data: { name?: string; timezone?: string }) {
+export function updateProject(id: string, data: { name?: string; timezone?: string }) {
     return apiFetch<Project>(`/api/projects/${id}`, {
         method: "PATCH",
-        token,
         body: JSON.stringify(data),
     });
 }
 
-export function deleteProject(token: string, id: string) {
+export function deleteProject(id: string) {
     return apiFetch<{ deleted: boolean }>(`/api/projects/${id}`, {
         method: "DELETE",
-        token,
     });
 }
 
@@ -110,12 +163,11 @@ export interface CloudAccount {
     createdAt: string;
 }
 
-export function listCloudAccounts(token: string, projectId: string) {
-    return apiFetch<CloudAccount[]>(`/api/cloud-accounts?projectId=${projectId}`, { token });
+export function listCloudAccounts(projectId: string) {
+    return apiFetch<CloudAccount[]>(`/api/cloud-accounts?projectId=${projectId}`);
 }
 
 export function createCloudAccount(
-    token: string,
     data: {
         projectId: string;
         provider?: string;
@@ -128,15 +180,13 @@ export function createCloudAccount(
 ) {
     return apiFetch<CloudAccount>("/api/cloud-accounts", {
         method: "POST",
-        token,
         body: JSON.stringify(data),
     });
 }
 
-export function deleteCloudAccount(token: string, id: string) {
+export function deleteCloudAccount(id: string) {
     return apiFetch<{ deleted: boolean }>(`/api/cloud-accounts/${id}`, {
         method: "DELETE",
-        token,
     });
 }
 
@@ -158,23 +208,22 @@ export interface CostSummary {
     monthForecast: number;
 }
 
-export function fetchCosts(token: string, cloudAccountId: string, startDate: string, endDate: string) {
+export function fetchCosts(cloudAccountId: string, startDate: string, endDate: string) {
     return apiFetch<{ recordsUpserted: number }>("/api/costs/fetch", {
         method: "POST",
-        token,
         body: JSON.stringify({ cloudAccountId, startDate, endDate }),
     });
 }
 
-export function getCostRecords(token: string, cloudAccountId: string, startDate?: string, endDate?: string) {
+export function getCostRecords(cloudAccountId: string, startDate?: string, endDate?: string) {
     let url = `/api/costs?cloudAccountId=${cloudAccountId}`;
     if (startDate) url += `&startDate=${startDate}`;
     if (endDate) url += `&endDate=${endDate}`;
-    return apiFetch<CostRecord[]>(url, { token });
+    return apiFetch<CostRecord[]>(url);
 }
 
-export function getProjectCostSummary(token: string, projectId: string) {
-    return apiFetch<CostSummary>(`/api/costs/summary/${projectId}`, { token });
+export function getProjectCostSummary(projectId: string) {
+    return apiFetch<CostSummary>(`/api/costs/summary/${projectId}`);
 }
 
 // ── Alert Rules ─────────────────────────────────────
@@ -200,12 +249,11 @@ export interface AlertSent {
     sentAt: string;
 }
 
-export function listAlertRules(token: string, projectId: string) {
-    return apiFetch<AlertRule[]>(`/api/alerts?projectId=${projectId}`, { token });
+export function listAlertRules(projectId: string) {
+    return apiFetch<AlertRule[]>(`/api/alerts?projectId=${projectId}`);
 }
 
 export function createAlertRule(
-    token: string,
     data: {
         projectId: string;
         dailyBudget?: number;
@@ -217,32 +265,28 @@ export function createAlertRule(
 ) {
     return apiFetch<AlertRule>("/api/alerts", {
         method: "POST",
-        token,
         body: JSON.stringify(data),
     });
 }
 
 export function updateAlertRule(
-    token: string,
     ruleId: string,
     data: Partial<Omit<AlertRule, "id" | "projectId" | "createdAt" | "updatedAt" | "_count">>
 ) {
     return apiFetch<AlertRule>(`/api/alerts/${ruleId}`, {
         method: "PATCH",
-        token,
         body: JSON.stringify(data),
     });
 }
 
-export function deleteAlertRule(token: string, ruleId: string) {
+export function deleteAlertRule(ruleId: string) {
     return apiFetch<{ deleted: boolean }>(`/api/alerts/${ruleId}`, {
         method: "DELETE",
-        token,
     });
 }
 
-export function getAlertHistory(token: string, projectId: string) {
-    return apiFetch<AlertSent[]>(`/api/alerts/history?projectId=${projectId}`, { token });
+export function getAlertHistory(projectId: string) {
+    return apiFetch<AlertSent[]>(`/api/alerts/history?projectId=${projectId}`);
 }
 
 // ── Billing & Subscriptions ─────────────────────────
@@ -254,38 +298,34 @@ export interface Subscription {
     hasStripeSubscription: boolean;
 }
 
-export function getSubscription(token: string) {
-    return apiFetch<Subscription>("/api/stripe/subscription", { token });
+export function getSubscription() {
+    return apiFetch<Subscription>("/api/stripe/subscription");
 }
 
-export function createCheckoutSession(token: string) {
+export function createCheckoutSession() {
     return apiFetch<{ url: string }>("/api/stripe/checkout", {
         method: "POST",
-        token,
     });
 }
 
-export function createPortalSession(token: string) {
+export function createPortalSession() {
     return apiFetch<{ url: string }>("/api/stripe/portal", {
         method: "POST",
-        token,
     });
 }
 
 // ── User Profile ────────────────────────────────────
 
-export function updateProfile(token: string, data: { name?: string; email?: string }) {
+export function updateProfile(data: { name?: string; email?: string }) {
     return apiFetch<{ id: string; email: string; name: string }>("/api/auth/me", {
         method: "PUT",
-        token,
         body: JSON.stringify(data),
     });
 }
 
-export function changePassword(token: string, data: { currentPassword: string; newPassword: string }) {
+export function changePassword(data: { currentPassword: string; newPassword: string }) {
     return apiFetch<{ message: string }>("/api/auth/me/password", {
         method: "PUT",
-        token,
         body: JSON.stringify(data),
     });
 }
@@ -299,8 +339,8 @@ export interface ActivityLogEntry {
     createdAt: string;
 }
 
-export function getActivityLog(token: string, limit = 50) {
-    return apiFetch<ActivityLogEntry[]>(`/api/activity?limit=${limit}`, { token });
+export function getActivityLog(limit = 50) {
+    return apiFetch<ActivityLogEntry[]>(`/api/activity?limit=${limit}`);
 }
 
 // ── Password Reset ──────────────────────────────────
@@ -318,3 +358,4 @@ export function resetPasswordApi(token: string, newPassword: string) {
         body: JSON.stringify({ token, newPassword }),
     });
 }
+

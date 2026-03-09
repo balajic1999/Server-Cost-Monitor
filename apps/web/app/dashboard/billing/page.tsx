@@ -45,25 +45,24 @@ const PLANS = [
 ];
 
 export default function BillingPage() {
-    const { token } = useAuth();
+
     const { addToast } = useToast();
     const [subscription, setSubscription] = useState<Subscription | null>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
 
     useEffect(() => {
-        if (!token) return;
-        getSubscription(token)
+        getSubscription()
             .then(setSubscription)
             .catch(() => setSubscription({ plan: "FREE", status: "ACTIVE", currentPeriodEnd: null, hasStripeSubscription: false }))
             .finally(() => setLoading(false));
-    }, [token]);
+    }, []);
 
     const handleUpgrade = async () => {
-        if (!token) return;
+
         setActionLoading(true);
         try {
-            const { url } = await createCheckoutSession(token);
+            const { url } = await createCheckoutSession();
             if (url) window.location.href = url;
         } catch (err) {
             addToast("error", (err as Error).message);
@@ -73,10 +72,10 @@ export default function BillingPage() {
     };
 
     const handleManage = async () => {
-        if (!token) return;
+
         setActionLoading(true);
         try {
-            const { url } = await createPortalSession(token);
+            const { url } = await createPortalSession();
             if (url) window.location.href = url;
         } catch (err) {
             addToast("error", (err as Error).message);

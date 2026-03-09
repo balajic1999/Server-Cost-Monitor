@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { authRouter } from "./modules/auth/auth.routes";
@@ -25,6 +26,7 @@ app.use(cors({
   origin: env.FRONTEND_URL,
   credentials: true,
 }));
+app.use(cookieParser());
 app.use(requestIdMiddleware);
 
 // Stripe webhook needs raw body BEFORE json parsing

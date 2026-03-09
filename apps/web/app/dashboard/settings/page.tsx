@@ -6,7 +6,7 @@ import { useToast } from "../../../contexts/ToastContext";
 import { updateProfile, changePassword } from "../../../lib/api";
 
 export default function SettingsPage() {
-    const { user, token, logout } = useAuth();
+    const { user, logout } = useAuth();
     const { addToast } = useToast();
 
     const [name, setName] = useState("");
@@ -32,10 +32,10 @@ export default function SettingsPage() {
 
     async function handleProfileUpdate(e: FormEvent) {
         e.preventDefault();
-        if (!token) return;
+
         setProfileLoading(true);
         try {
-            await updateProfile(token, { name, email });
+            await updateProfile({ name, email });
             addToast("success", "Profile updated successfully");
         } catch (err) {
             addToast("error", (err as Error).message);
@@ -46,7 +46,7 @@ export default function SettingsPage() {
 
     async function handlePasswordChange(e: FormEvent) {
         e.preventDefault();
-        if (!token) return;
+
 
         if (newPw !== confirmPw) {
             addToast("error", "Passwords do not match");
@@ -55,7 +55,7 @@ export default function SettingsPage() {
 
         setPwLoading(true);
         try {
-            await changePassword(token, { currentPassword: currentPw, newPassword: newPw });
+            await changePassword({ currentPassword: currentPw, newPassword: newPw });
             addToast("success", "Password changed successfully");
             setCurrentPw("");
             setNewPw("");

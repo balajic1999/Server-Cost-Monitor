@@ -8,7 +8,13 @@ import {
     useState,
     ReactNode,
 } from "react";
-import { login as apiLogin, register as apiRegister, getMe, AuthResponse } from "../lib/api";
+import {
+    login as apiLogin,
+    register as apiRegister,
+    getMe,
+    logoutApi,
+    AuthResponse,
+} from "../lib/api";
 
 interface User {
     id: string;
@@ -19,41 +25,31 @@ interface User {
 
 interface AuthCtx {
     user: User | null;
-    token: string | null;
     loading: boolean;
     login: (email: string, password: string) => Promise<void>;
     register: (email: string, password: string, name: string) => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;
+    refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
 
-const TOKEN_KEY = "cloudpulse_token";
-
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
-    const [token, setToken] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Hydrate from localStorage
+    // Hydrate session from httpOnly cookie (no localStorage!)
+    // Just call getMe — if cookie exists, it'll work; if not, user is null
     useEffect(() => {
-        const stored = localStorage.getItem(TOKEN_KEY);
-        if (!stored) {
-            setLoading(false);
-            return;
-        }
-        getMe(stored)
-            .then((u) => {
-                setUser(u);
-                setToken(stored);
-            })
-            .catch(() => localStorage.removeItem(TOKEN_KEY))
+        getMe()
+            .then((u) => setUser(u))
+            .catch(() => setUser(null))
             .finally(() => setLoading(false));
     }, []);
 
     const handleAuth = useCallback((res: AuthResponse) => {
-        localStorage.setItem(TOKEN_KEY, res.token);
-        setToken(res.token);
+        // Cookies are set automatically by the browser from Set-Cookie headers
+        // We only need the user object from the response body
         setUser(res.user);
     }, []);
 
@@ -73,14 +69,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         [handleAuth]
     );
 
-    const logout = useCallback(() => {
-        localStorage.removeItem(TOKEN_KEY);
-        setToken(null);
+    const logout = useCallback(async () => {
+        try {
+            await logoutApi();
+        } catch {
+            // Even if API call fails, clear local state
+        }
         setUser(null);
     }, []);
 
+    const refreshUser = useCallback(async () => {
+        try {
+            const u = await getMe();
+            setUser(u);
+        } catch {
+            setUser(null);
+        }
+    }, []);
+
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+        <AuthContext.Provider value={{ user, loading, login, register, logout, refreshUser }}>
             {children}
         </AuthContext.Provider>
     );

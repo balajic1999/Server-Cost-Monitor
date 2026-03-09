@@ -17,19 +17,19 @@ type Tab = "overview" | "accounts" | "alerts";
 
 export default function ProjectDetailPage() {
     const { id } = useParams<{ id: string }>();
-    const { token } = useAuth();
+
     const [project, setProject] = useState<Project | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [tab, setTab] = useState<Tab>("overview");
 
     useEffect(() => {
-        if (!token || !id) return;
-        getProject(token, id)
+        if (!id) return;
+        getProject(id)
             .then(setProject)
             .catch((e) => setError((e as Error).message))
             .finally(() => setLoading(false));
-    }, [token, id]);
+    }, [id]);
 
     if (loading) {
         return (
@@ -109,7 +109,7 @@ export default function ProjectDetailPage() {
 /* ─── Overview Tab ─────────────────────────────────────── */
 
 function OverviewTab({ projectId }: { projectId: string }) {
-    const { token } = useAuth();
+
     const [summary, setSummary] = useState<CostSummary | null>(null);
     const [records, setRecords] = useState<CostRecord[]>([]);
     const [accounts, setAccounts] = useState<CloudAccount[]>([]);
@@ -145,16 +145,16 @@ function OverviewTab({ projectId }: { projectId: string }) {
     };
 
     useEffect(() => {
-        if (!token) return;
+
         if (rangePreset === "custom" && (!customStart || !customEnd)) return;
 
         setLoading(true);
         const { startDate, endDate } = getDateRange();
 
         Promise.all([
-            getProjectCostSummary(token, projectId).catch(() => null),
-            listCloudAccounts(token, projectId).catch(() => [] as CloudAccount[]),
-            listAlertRules(token, projectId).catch(() => [] as AlertRule[]),
+            getProjectCostSummary(projectId).catch(() => null),
+            listCloudAccounts(projectId).catch(() => [] as CloudAccount[]),
+            listAlertRules(projectId).catch(() => [] as AlertRule[]),
         ])
             .then(async ([s, accs, rules]) => {
                 if (s) setSummary(s);
@@ -162,7 +162,7 @@ function OverviewTab({ projectId }: { projectId: string }) {
                 setAlertRules(rules);
                 const allRecords = await Promise.all(
                     accs.map((acc) =>
-                        getCostRecords(token, acc.id, startDate, endDate).catch(
+                        getCostRecords(acc.id, startDate, endDate).catch(
                             () => [] as CostRecord[]
                         )
                     )
@@ -171,7 +171,7 @@ function OverviewTab({ projectId }: { projectId: string }) {
             })
             .catch(() => { })
             .finally(() => setLoading(false));
-    }, [token, projectId, rangePreset, customStart, customEnd]);
+    }, [projectId, rangePreset, customStart, customEnd]);
 
     // CSV export helper
     function downloadCSV() {
@@ -687,7 +687,7 @@ function CostBarChart({ records, avgDailySpend, rangeLabel }: { records: CostRec
 /* ─── Cloud Accounts Tab ───────────────────────────────── */
 
 function AccountsTab({ projectId }: { projectId: string }) {
-    const { token } = useAuth();
+
     const { addToast } = useToast();
     const [accounts, setAccounts] = useState<CloudAccount[]>([]);
     const [loading, setLoading] = useState(true);
@@ -695,17 +695,17 @@ function AccountsTab({ projectId }: { projectId: string }) {
     const [fetching, setFetching] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!token) return;
-        listCloudAccounts(token, projectId)
+
+        listCloudAccounts(projectId)
             .then(setAccounts)
             .catch(() => { })
             .finally(() => setLoading(false));
-    }, [token, projectId]);
+    }, [projectId]);
 
     async function handleDelete(accountId: string) {
-        if (!token || !confirm("Remove this cloud account? Cost data will be preserved.")) return;
+        if (!confirm("Remove this cloud account? Cost data will be preserved.")) return;
         try {
-            await deleteCloudAccount(token, accountId);
+            await deleteCloudAccount(accountId);
             setAccounts((a) => a.filter((x) => x.id !== accountId));
             addToast("success", "Cloud account removed successfully");
         } catch (err) {
@@ -714,13 +714,13 @@ function AccountsTab({ projectId }: { projectId: string }) {
     }
 
     async function handleFetch(accountId: string) {
-        if (!token) return;
+
         setFetching(accountId);
         try {
             const today = new Date();
             const endDate = today.toISOString().split("T")[0];
             const startDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-            const result = await fetchCosts(token, accountId, startDate, endDate);
+            const result = await fetchCosts(accountId, startDate, endDate);
             addToast("success", `Fetched ${result.recordsUpserted} cost records!`);
         } catch (err) {
             addToast("error", (err as Error).message);
@@ -820,7 +820,7 @@ function AccountsTab({ projectId }: { projectId: string }) {
 }
 
 function AddAccountModal({ projectId, onClose, onCreated }: { projectId: string; onClose: () => void; onCreated: (acc: CloudAccount) => void }) {
-    const { token } = useAuth();
+
     const [authType, setAuthType] = useState<"role" | "keys">("keys");
     const [label, setLabel] = useState("");
     const [accountId, setAccountId] = useState("");
@@ -832,11 +832,11 @@ function AddAccountModal({ projectId, onClose, onCreated }: { projectId: string;
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
-        if (!token) return;
+
         setError("");
         setLoading(true);
         try {
-            const acc = await createCloudAccount(token, {
+            const acc = await createCloudAccount({
                 projectId,
                 provider: "AWS",
                 accountLabel: label,
@@ -935,7 +935,7 @@ function AddAccountModal({ projectId, onClose, onCreated }: { projectId: string;
 /* ─── Alerts Tab ───────────────────────────────────────── */
 
 function AlertsTab({ projectId }: { projectId: string }) {
-    const { token } = useAuth();
+
     const { addToast } = useToast();
     const [rules, setRules] = useState<AlertRule[]>([]);
     const [history, setHistory] = useState<AlertSent[]>([]);
@@ -943,19 +943,19 @@ function AlertsTab({ projectId }: { projectId: string }) {
     const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
-        if (!token) return;
+
         Promise.all([
-            listAlertRules(token, projectId).catch(() => []),
-            getAlertHistory(token, projectId).catch(() => []),
+            listAlertRules(projectId).catch(() => []),
+            getAlertHistory(projectId).catch(() => []),
         ])
             .then(([r, h]) => { setRules(r); setHistory(h); })
             .finally(() => setLoading(false));
-    }, [token, projectId]);
+    }, [projectId]);
 
     async function handleDelete(ruleId: string) {
-        if (!token || !confirm("Delete this alert rule?")) return;
+        if (!confirm("Delete this alert rule?")) return;
         try {
-            await deleteAlertRule(token, ruleId);
+            await deleteAlertRule(ruleId);
             setRules((r) => r.filter((x) => x.id !== ruleId));
             addToast("success", "Alert rule deleted");
         } catch (err) {
@@ -1076,7 +1076,7 @@ function AlertsTab({ projectId }: { projectId: string }) {
 }
 
 function CreateAlertModal({ projectId, onClose, onCreated }: { projectId: string; onClose: () => void; onCreated: (rule: AlertRule) => void }) {
-    const { token } = useAuth();
+
     const [dailyBudget, setDailyBudget] = useState("");
     const [monthlyBudget, setMonthlyBudget] = useState("");
     const [spikeThreshold, setSpikeThreshold] = useState("");
@@ -1087,7 +1087,7 @@ function CreateAlertModal({ projectId, onClose, onCreated }: { projectId: string
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
-        if (!token) return;
+
         if (!dailyBudget && !monthlyBudget && !spikeThreshold) {
             setError("At least one alert condition is required.");
             return;
@@ -1095,7 +1095,7 @@ function CreateAlertModal({ projectId, onClose, onCreated }: { projectId: string
         setError("");
         setLoading(true);
         try {
-            const rule = await createAlertRule(token, {
+            const rule = await createAlertRule({
                 projectId,
                 ...(dailyBudget ? { dailyBudget: parseFloat(dailyBudget) } : {}),
                 ...(monthlyBudget ? { monthlyBudget: parseFloat(monthlyBudget) } : {}),

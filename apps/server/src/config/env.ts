@@ -9,7 +9,9 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(4000),
   DATABASE_URL: z.string().min(1),
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 chars"),
-  JWT_EXPIRES_IN: z.string().default("1d"),
+  JWT_EXPIRES_IN: z.string().default("15m"),
+  REFRESH_TOKEN_SECRET: z.string().min(32).optional(),
+  REFRESH_TOKEN_EXPIRES_IN: z.coerce.number().default(604800), // 7 days in seconds
   ENCRYPTION_KEY: z.string().length(64, "ENCRYPTION_KEY must be a 64-char hex string (256-bit)"),
   REDIS_URL: z.string().default("redis://localhost:6379"),
   SMTP_HOST: z.string().optional(),

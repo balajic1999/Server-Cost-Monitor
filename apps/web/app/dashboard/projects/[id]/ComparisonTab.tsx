@@ -18,22 +18,22 @@ interface AccountCost {
 }
 
 export default function ComparisonTab({ projectId }: { projectId: string }) {
-    const { token } = useAuth();
+
     const [data, setData] = useState<AccountCost[]>([]);
     const [loading, setLoading] = useState(true);
 
     const load = useCallback(async () => {
-        if (!token) return;
+
         setLoading(true);
         try {
-            const accounts = await listCloudAccounts(token, projectId);
+            const accounts = await listCloudAccounts(projectId);
             const today = new Date().toISOString().split("T")[0];
             const monthStart = today.slice(0, 7) + "-01";
             const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
 
             const results: AccountCost[] = await Promise.all(
                 accounts.map(async (account) => {
-                    const records = await getCostRecords(token, account.id, thirtyDaysAgo);
+                    const records = await getCostRecords(account.id, thirtyDaysAgo);
                     const totalSpend = records.reduce((s, r) => s + Number(r.amount), 0);
                     const todaySpend = records
                         .filter((r) => r.periodStart.startsWith(today))
@@ -51,7 +51,7 @@ export default function ComparisonTab({ projectId }: { projectId: string }) {
         } finally {
             setLoading(false);
         }
-    }, [token, projectId]);
+    }, [projectId]);
 
     useEffect(() => { load(); }, [load]);
 

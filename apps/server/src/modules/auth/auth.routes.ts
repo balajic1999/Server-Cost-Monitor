@@ -1,19 +1,28 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import bcrypt from "bcrypt";
 import { prisma } from "../../lib/prisma";
 import { AuthedRequest, requireAuth } from "../../middleware/auth.middleware";
-import { loginUser, registerUser, requestPasswordReset, resetPassword } from "./auth.service";
+import {
+  loginUser,
+  registerUser,
+  requestPasswordReset,
+  resetPassword,
+  refreshAccessToken,
+  revokeRefreshToken,
+  setAuthCookies,
+  clearAuthCookies,
+} from "./auth.service";
 import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema } from "./auth.schema";
 import { z } from "zod";
 import { rateLimit } from "../../middleware/rate-limit.middleware";
 
 export const authRouter = Router();
 
-// Rate limiters: stricter for register, moderate for login
-const loginLimiter = rateLimit(15 * 60 * 1000, 10);   // 10 attempts per 15 min
-const registerLimiter = rateLimit(15 * 60 * 1000, 5);  // 5 attempts per 15 min
+// ── Rate limiters ────────────────────────────────────
+const authLimiter = rateLimit(15 * 60 * 1000, 10); // 10 attempts per 15 min
 
-authRouter.post("/register", registerLimiter, async (req, res) => {
+// ── Register ─────────────────────────────────────────
+authRouter.post("/register", authLimiter, async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ message: "Validation failed", errors: parsed.error.flatten() });
@@ -21,13 +30,20 @@ authRouter.post("/register", registerLimiter, async (req, res) => {
 
   try {
     const result = await registerUser(parsed.data);
-    return res.status(201).json(result);
+
+    // Set httpOnly cookies
+    setAuthCookies(res, result.accessToken, result.refreshToken);
+
+    return res.status(201).json({
+      user: result.user,
+    });
   } catch (error) {
-    return res.status(409).json({ message: (error as Error).message });
+    return res.status(400).json({ message: (error as Error).message });
   }
 });
 
-authRouter.post("/login", loginLimiter, async (req, res) => {
+// ── Login ────────────────────────────────────────────
+authRouter.post("/login", authLimiter, async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ message: "Validation failed", errors: parsed.error.flatten() });
@@ -35,79 +51,101 @@ authRouter.post("/login", loginLimiter, async (req, res) => {
 
   try {
     const result = await loginUser(parsed.data);
-    return res.status(200).json(result);
-  } catch {
-    return res.status(401).json({ message: "Invalid credentials" });
+
+    // Set httpOnly cookies
+    setAuthCookies(res, result.accessToken, result.refreshToken);
+
+    return res.json({
+      user: result.user,
+    });
+  } catch (error) {
+    return res.status(401).json({ message: (error as Error).message });
   }
 });
 
-authRouter.get("/me", requireAuth, async (req: AuthedRequest, res) => {
-  const user = await prisma.user.findUnique({
-    where: { id: req.user?.sub },
-    select: { id: true, email: true, name: true, createdAt: true }
-  });
-
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
+// ── Refresh Token ────────────────────────────────────
+authRouter.post("/refresh", async (req: Request, res: Response) => {
+  const refreshToken = req.cookies?.refresh_token;
+  if (!refreshToken) {
+    return res.status(401).json({ message: "No refresh token" });
   }
 
+  try {
+    const result = await refreshAccessToken(refreshToken);
+
+    // Set new cookies (token rotation)
+    setAuthCookies(res, result.accessToken, result.refreshToken);
+
+    return res.json({ user: result.user });
+  } catch (error) {
+    // Clear invalid cookies
+    clearAuthCookies(res);
+    return res.status(401).json({ message: (error as Error).message });
+  }
+});
+
+// ── Logout ───────────────────────────────────────────
+authRouter.post("/logout", async (req: Request, res: Response) => {
+  const refreshToken = req.cookies?.refresh_token;
+
+  // Revoke refresh token in Redis
+  if (refreshToken) {
+    await revokeRefreshToken(refreshToken);
+  }
+
+  // Clear cookies
+  clearAuthCookies(res);
+
+  return res.json({ message: "Logged out successfully" });
+});
+
+// ── Get Current User (protected) ─────────────────────
+authRouter.get("/me", requireAuth, async (req: AuthedRequest, res) => {
+  const userId = req.user!.sub;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, name: true, createdAt: true },
+  });
+
+  if (!user) return res.status(404).json({ message: "User not found" });
   return res.json(user);
 });
 
-// ── Update profile ───────────────────────────────────────
-
-const updateProfileSchema = z.object({
-  name: z.string().min(2).max(100).optional(),
-  email: z.string().email().optional(),
-});
-
+// ── Update Profile (protected) ───────────────────────
 authRouter.put("/me", requireAuth, async (req: AuthedRequest, res) => {
-  const parsed = updateProfileSchema.safeParse(req.body);
+  const userId = req.user!.sub;
+  const schema = z.object({ name: z.string().min(2).max(80).optional() });
+  const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Validation failed", errors: parsed.error.flatten() });
+    return res.status(400).json({ message: "Validation failed" });
   }
 
-  const userId = req.user?.sub;
-  if (!userId) return res.status(401).json({ message: "Unauthorized" });
-
-  // Check email uniqueness if changing
-  if (parsed.data.email) {
-    const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
-    if (existing && existing.id !== userId) {
-      return res.status(409).json({ message: "Email already in use" });
-    }
-  }
-
-  const user = await prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id: userId },
     data: parsed.data,
     select: { id: true, email: true, name: true, createdAt: true },
   });
 
-  return res.json(user);
+  return res.json(updated);
 });
 
-// ── Change password ──────────────────────────────────────
-
-const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1),
-  newPassword: z.string().min(8, "New password must be at least 8 characters"),
-});
-
+// ── Change Password (protected) ──────────────────────
 authRouter.put("/me/password", requireAuth, async (req: AuthedRequest, res) => {
-  const parsed = changePasswordSchema.safeParse(req.body);
+  const userId = req.user!.sub;
+  const schema = z.object({
+    currentPassword: z.string(),
+    newPassword: z.string().min(8),
+  });
+  const parsed = schema.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ message: "Validation failed", errors: parsed.error.flatten() });
+    return res.status(400).json({ message: "Validation failed" });
   }
-
-  const userId = req.user?.sub;
-  if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return res.status(404).json({ message: "User not found" });
 
-  const isValid = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
-  if (!isValid) {
+  const valid = await bcrypt.compare(parsed.data.currentPassword, user.passwordHash);
+  if (!valid) {
     return res.status(400).json({ message: "Current password is incorrect" });
   }
 
@@ -120,8 +158,8 @@ authRouter.put("/me/password", requireAuth, async (req: AuthedRequest, res) => {
   return res.json({ message: "Password updated successfully" });
 });
 
-// ── Forgot password (public) ─────────────────────────────
-const forgotPasswordLimiter = rateLimit(15 * 60 * 1000, 5); // 5 attempts per 15 min
+// ── Forgot Password (public) ────────────────────────
+const forgotPasswordLimiter = rateLimit(15 * 60 * 1000, 5);
 
 authRouter.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
   const parsed = forgotPasswordSchema.safeParse(req.body);
@@ -140,14 +178,13 @@ authRouter.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
       });
     }
 
-    // Always return success to prevent user enumeration
     return res.json({ message: "If that email is registered, a reset link has been sent." });
   } catch (error) {
     return res.status(500).json({ message: (error as Error).message });
   }
 });
 
-// ── Reset password (public) ──────────────────────────────
+// ── Reset Password (public) ─────────────────────────
 const resetPasswordLimiter = rateLimit(15 * 60 * 1000, 5);
 
 authRouter.post("/reset-password", resetPasswordLimiter, async (req, res) => {

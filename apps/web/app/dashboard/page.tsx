@@ -10,7 +10,7 @@ import {
 import Link from "next/link";
 
 export default function DashboardPage() {
-    const { token } = useAuth();
+
     const { addToast } = useToast();
     const [projects, setProjects] = useState<Project[]>([]);
     const [summaries, setSummaries] = useState<Record<string, CostSummary>>({});
@@ -18,15 +18,14 @@ export default function DashboardPage() {
     const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
-        if (!token) return;
-        listProjects(token)
+        listProjects()
             .then(async (projs) => {
                 setProjects(projs);
                 // Fetch cost summaries for all projects in parallel
                 const entries = await Promise.all(
                     projs.map(async (p) => {
                         try {
-                            const s = await getProjectCostSummary(token, p.id);
+                            const s = await getProjectCostSummary(p.id);
                             return [p.id, s] as const;
                         } catch {
                             return [p.id, null] as const;
@@ -41,12 +40,12 @@ export default function DashboardPage() {
             })
             .catch(() => { })
             .finally(() => setLoading(false));
-    }, [token]);
+    }, []);
 
     async function handleDelete(id: string) {
-        if (!token || !confirm("Delete this project? All data will be lost.")) return;
+        if (!confirm("Delete this project? All data will be lost.")) return;
         try {
-            await deleteProject(token, id);
+            await deleteProject(id);
             setProjects((p) => p.filter((x) => x.id !== id));
             addToast("success", "Project deleted");
         } catch (err) {
@@ -405,7 +404,7 @@ function CreateProjectModal({
     onClose: () => void;
     onCreated: (p: Project) => void;
 }) {
-    const { token } = useAuth();
+
     const [name, setName] = useState("");
     const [timezone, setTimezone] = useState("UTC");
     const [error, setError] = useState("");
@@ -413,11 +412,11 @@ function CreateProjectModal({
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
-        if (!token) return;
+
         setError("");
         setLoading(true);
         try {
-            const project = await createProject(token, { name, timezone });
+            const project = await createProject({ name, timezone });
             onCreated(project);
         } catch (err) {
             setError((err as Error).message);
