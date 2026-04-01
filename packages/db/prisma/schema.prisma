@@ -10,6 +10,7 @@ datasource db {
 enum CloudProvider {
   AWS
   GCP
+  AZURE
 }
 
 enum SubscriptionPlan {
@@ -71,6 +72,13 @@ model CloudAccount {
   roleArn              String?
   accessKeyEncrypted   String?
   secretKeyEncrypted   String?
+  // GCP: Service Account JSON key (encrypted)
+  gcpKeyJsonEncrypted  String?
+  // Azure: Service Principal credentials
+  azureTenantId                String?
+  azureClientId                String?
+  azureClientSecretEncrypted   String?
+  azureSubscriptionId          String?
   encryptionKeyVersion Int           @default(1)
   isActive             Boolean       @default(true)
   createdAt            DateTime      @default(now())

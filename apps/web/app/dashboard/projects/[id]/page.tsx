@@ -538,8 +538,14 @@ function OverviewTab({ projectId }: { projectId: string }) {
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                             {accounts.map((acc) => (
                                 <div key={acc.id} className="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-800/30 px-4 py-3">
-                                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20">
-                                        <span className="text-sm font-bold text-amber-400">A</span>
+                                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${acc.provider === "GCP" ? "from-blue-500/20 to-green-500/20" :
+                                            acc.provider === "AZURE" ? "from-cyan-500/20 to-blue-500/20" :
+                                                "from-amber-500/20 to-orange-500/20"
+                                        }`}>
+                                        <span className={`text-sm font-bold ${acc.provider === "GCP" ? "text-blue-400" :
+                                                acc.provider === "AZURE" ? "text-cyan-400" :
+                                                    "text-amber-400"
+                                            }`}>{acc.provider === "GCP" ? "G" : acc.provider === "AZURE" ? "Az" : "A"}</span>
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <p className="text-sm font-medium text-white truncate">{acc.accountLabel}</p>
@@ -756,7 +762,7 @@ function AccountsTab({ projectId }: { projectId: string }) {
                         onClick={() => setShowModal(true)}
                         className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-500"
                     >
-                        Connect AWS Account
+                        Connect Cloud Account
                     </button>
                 </div>
             ) : (
@@ -764,8 +770,14 @@ function AccountsTab({ projectId }: { projectId: string }) {
                     {accounts.map((acc) => (
                         <div key={acc.id} className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/60 px-5 py-4 transition hover:border-slate-700">
                             <div className="flex items-center gap-4">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20">
-                                    <span className="text-lg font-bold text-amber-400">A</span>
+                                <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${acc.provider === "GCP" ? "from-blue-500/20 to-green-500/20" :
+                                        acc.provider === "AZURE" ? "from-cyan-500/20 to-blue-500/20" :
+                                            "from-amber-500/20 to-orange-500/20"
+                                    }`}>
+                                    <span className={`text-lg font-bold ${acc.provider === "GCP" ? "text-blue-400" :
+                                            acc.provider === "AZURE" ? "text-cyan-400" :
+                                                "text-amber-400"
+                                        }`}>{acc.provider === "GCP" ? "G" : acc.provider === "AZURE" ? "Az" : "A"}</span>
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-white">{acc.accountLabel}</p>
@@ -821,14 +833,31 @@ function AccountsTab({ projectId }: { projectId: string }) {
 
 function AddAccountModal({ projectId, onClose, onCreated }: { projectId: string; onClose: () => void; onCreated: (acc: CloudAccount) => void }) {
 
+    type Provider = "AWS" | "GCP" | "AZURE";
+    const [provider, setProvider] = useState<Provider>("AWS");
     const [authType, setAuthType] = useState<"role" | "keys">("keys");
     const [label, setLabel] = useState("");
     const [accountId, setAccountId] = useState("");
+    // AWS
     const [roleArn, setRoleArn] = useState("");
     const [accessKey, setAccessKey] = useState("");
     const [secretKey, setSecretKey] = useState("");
+    // GCP
+    const [gcpKeyJson, setGcpKeyJson] = useState("");
+    // Azure
+    const [azureTenantId, setAzureTenantId] = useState("");
+    const [azureClientId, setAzureClientId] = useState("");
+    const [azureClientSecret, setAzureClientSecret] = useState("");
+    const [azureSubscriptionId, setAzureSubscriptionId] = useState("");
+
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+
+    const providerConfig: Record<Provider, { label: string; color: string; activeColor: string; icon: string; idLabel: string; idPlaceholder: string }> = {
+        AWS: { label: "AWS", color: "border-slate-700 text-slate-400 hover:text-slate-200", activeColor: "border-amber-500 bg-amber-500/10 text-amber-400", icon: "☁️", idLabel: "AWS Account ID", idPlaceholder: "123456789012" },
+        GCP: { label: "Google Cloud", color: "border-slate-700 text-slate-400 hover:text-slate-200", activeColor: "border-blue-500 bg-blue-500/10 text-blue-400", icon: "🔵", idLabel: "GCP Project ID", idPlaceholder: "my-project-123456" },
+        AZURE: { label: "Azure", color: "border-slate-700 text-slate-400 hover:text-slate-200", activeColor: "border-cyan-500 bg-cyan-500/10 text-cyan-400", icon: "🔷", idLabel: "Azure Subscription Name", idPlaceholder: "my-subscription" },
+    };
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
@@ -836,13 +865,16 @@ function AddAccountModal({ projectId, onClose, onCreated }: { projectId: string;
         setError("");
         setLoading(true);
         try {
-            const acc = await createCloudAccount({
-                projectId,
-                provider: "AWS",
-                accountLabel: label,
-                externalAccountId: accountId,
-                ...(authType === "role" ? { roleArn } : { accessKey, secretKey }),
-            });
+            const base = { projectId, provider, accountLabel: label, externalAccountId: accountId };
+            let creds = {};
+            if (provider === "AWS") {
+                creds = authType === "role" ? { roleArn } : { accessKey, secretKey };
+            } else if (provider === "GCP") {
+                creds = { gcpKeyJson };
+            } else if (provider === "AZURE") {
+                creds = { azureTenantId, azureClientId, azureClientSecret, azureSubscriptionId };
+            }
+            const acc = await createCloudAccount({ ...base, ...creds });
             onCreated(acc);
         } catch (err) {
             setError((err as Error).message);
@@ -851,13 +883,33 @@ function AddAccountModal({ projectId, onClose, onCreated }: { projectId: string;
         }
     }
 
+    const cfg = providerConfig[provider];
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-            <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-                <h2 className="text-xl font-bold text-white">Connect AWS Account</h2>
-                <p className="mt-1 text-sm text-slate-400">Enter your AWS credentials to start tracking costs</p>
+            <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                <h2 className="text-xl font-bold text-white">Connect Cloud Account</h2>
+                <p className="mt-1 text-sm text-slate-400">Select a provider and enter credentials to start tracking costs</p>
 
-                <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+                {/* Provider selector */}
+                <div className="mt-5 flex gap-2">
+                    {(["AWS", "GCP", "AZURE"] as const).map((p) => {
+                        const pc = providerConfig[p];
+                        return (
+                            <button
+                                key={p}
+                                type="button"
+                                onClick={() => setProvider(p)}
+                                className={`flex-1 flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-medium transition ${provider === p ? pc.activeColor : pc.color}`}
+                            >
+                                <span className="text-base">{pc.icon}</span>
+                                {pc.label}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                <form onSubmit={handleSubmit} className="mt-5 space-y-4">
                     {error && (
                         <div className="rounded-lg border border-red-800/50 bg-red-950/50 px-4 py-3 text-sm text-red-300">{error}</div>
                     )}
@@ -870,49 +922,92 @@ function AddAccountModal({ projectId, onClose, onCreated }: { projectId: string;
                     </div>
 
                     <div>
-                        <label className="mb-1.5 block text-sm font-medium text-slate-300">AWS Account ID</label>
+                        <label className="mb-1.5 block text-sm font-medium text-slate-300">{cfg.idLabel}</label>
                         <input type="text" required value={accountId} onChange={(e) => setAccountId(e.target.value)}
                             className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                            placeholder="123456789012" />
+                            placeholder={cfg.idPlaceholder} />
                     </div>
 
-                    {/* Auth type selector */}
-                    <div>
-                        <label className="mb-2 block text-sm font-medium text-slate-300">Authentication Method</label>
-                        <div className="flex gap-2">
-                            <button type="button" onClick={() => setAuthType("keys")}
-                                className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${authType === "keys" ? "border-indigo-500 bg-indigo-500/10 text-indigo-400" : "border-slate-700 text-slate-400 hover:text-slate-200"}`}>
-                                Access Keys
-                            </button>
-                            <button type="button" onClick={() => setAuthType("role")}
-                                className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${authType === "role" ? "border-indigo-500 bg-indigo-500/10 text-indigo-400" : "border-slate-700 text-slate-400 hover:text-slate-200"}`}>
-                                IAM Role ARN
-                            </button>
-                        </div>
-                    </div>
-
-                    {authType === "keys" ? (
+                    {/* Provider-specific fields */}
+                    {provider === "AWS" && (
                         <>
                             <div>
-                                <label className="mb-1.5 block text-sm font-medium text-slate-300">Access Key ID</label>
-                                <input type="text" required value={accessKey} onChange={(e) => setAccessKey(e.target.value)}
+                                <label className="mb-2 block text-sm font-medium text-slate-300">Authentication Method</label>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={() => setAuthType("keys")}
+                                        className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${authType === "keys" ? "border-indigo-500 bg-indigo-500/10 text-indigo-400" : "border-slate-700 text-slate-400 hover:text-slate-200"}`}>
+                                        Access Keys
+                                    </button>
+                                    <button type="button" onClick={() => setAuthType("role")}
+                                        className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${authType === "role" ? "border-indigo-500 bg-indigo-500/10 text-indigo-400" : "border-slate-700 text-slate-400 hover:text-slate-200"}`}>
+                                        IAM Role ARN
+                                    </button>
+                                </div>
+                            </div>
+
+                            {authType === "keys" ? (
+                                <>
+                                    <div>
+                                        <label className="mb-1.5 block text-sm font-medium text-slate-300">Access Key ID</label>
+                                        <input type="text" required value={accessKey} onChange={(e) => setAccessKey(e.target.value)}
+                                            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                            placeholder="AKIA..." />
+                                    </div>
+                                    <div>
+                                        <label className="mb-1.5 block text-sm font-medium text-slate-300">Secret Access Key</label>
+                                        <input type="password" required value={secretKey} onChange={(e) => setSecretKey(e.target.value)}
+                                            className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                            placeholder="••••••••" />
+                                    </div>
+                                </>
+                            ) : (
+                                <div>
+                                    <label className="mb-1.5 block text-sm font-medium text-slate-300">IAM Role ARN</label>
+                                    <input type="text" required value={roleArn} onChange={(e) => setRoleArn(e.target.value)}
+                                        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                        placeholder="arn:aws:iam::123456789012:role/CostExplorerRole" />
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    {provider === "GCP" && (
+                        <div>
+                            <label className="mb-1.5 block text-sm font-medium text-slate-300">Service Account JSON Key</label>
+                            <textarea required value={gcpKeyJson} onChange={(e) => setGcpKeyJson(e.target.value)} rows={5}
+                                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 font-mono text-xs"
+                                placeholder={'{ "type": "service_account", "project_id": "...", ... }'} />
+                            <p className="mt-1 text-xs text-slate-500">Paste your GCP service account JSON key file contents</p>
+                        </div>
+                    )}
+
+                    {provider === "AZURE" && (
+                        <>
+                            <div>
+                                <label className="mb-1.5 block text-sm font-medium text-slate-300">Subscription ID</label>
+                                <input type="text" required value={azureSubscriptionId} onChange={(e) => setAzureSubscriptionId(e.target.value)}
                                     className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                                    placeholder="AKIA..." />
+                                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
                             </div>
                             <div>
-                                <label className="mb-1.5 block text-sm font-medium text-slate-300">Secret Access Key</label>
-                                <input type="password" required value={secretKey} onChange={(e) => setSecretKey(e.target.value)}
+                                <label className="mb-1.5 block text-sm font-medium text-slate-300">Tenant ID</label>
+                                <input type="text" required value={azureTenantId} onChange={(e) => setAzureTenantId(e.target.value)}
+                                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                            </div>
+                            <div>
+                                <label className="mb-1.5 block text-sm font-medium text-slate-300">Client ID (App Registration)</label>
+                                <input type="text" required value={azureClientId} onChange={(e) => setAzureClientId(e.target.value)}
+                                    className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+                                    placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+                            </div>
+                            <div>
+                                <label className="mb-1.5 block text-sm font-medium text-slate-300">Client Secret</label>
+                                <input type="password" required value={azureClientSecret} onChange={(e) => setAzureClientSecret(e.target.value)}
                                     className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
                                     placeholder="••••••••" />
                             </div>
                         </>
-                    ) : (
-                        <div>
-                            <label className="mb-1.5 block text-sm font-medium text-slate-300">IAM Role ARN</label>
-                            <input type="text" required value={roleArn} onChange={(e) => setRoleArn(e.target.value)}
-                                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-white placeholder-slate-500 transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
-                                placeholder="arn:aws:iam::123456789012:role/CostExplorerRole" />
-                        </div>
                     )}
 
                     <div className="rounded-lg border border-amber-800/30 bg-amber-950/20 px-4 py-3">

@@ -2,20 +2,51 @@ import { prisma } from "../../lib/prisma";
 import { getRedis } from "../../lib/redis";
 import type { Redis } from "ioredis";
 import { getDecryptedCredentials } from "../cloud-accounts/cloud-account.service";
-import { fetchCostsByService, fetchTotalCost } from "./aws-cost.client";
+import { fetchCostsByService, fetchTotalCost, type CostDataPoint } from "./aws-cost.client";
+import { fetchGcpCostsByService } from "../gcp/gcp-cost.client";
+import { fetchAzureCostsByService } from "../azure/azure-cost.client";
 
 /**
  * Fetch and store cost data for a single cloud account.
+ * Routes to the appropriate cloud provider SDK based on the account's provider.
  * Called by the manual trigger endpoint and the scheduled job.
  */
 export async function fetchAndStoreCosts(cloudAccountId: string, startDate: string, endDate: string) {
     const creds = await getDecryptedCredentials(cloudAccountId);
 
-    if (creds.provider !== "AWS") {
-        throw new Error(`Provider ${creds.provider} not yet supported`);
-    }
+    let dataPoints: CostDataPoint[];
 
-    const dataPoints = await fetchCostsByService(creds, startDate, endDate);
+    switch (creds.provider) {
+        case "AWS":
+            dataPoints = await fetchCostsByService(creds, startDate, endDate);
+            break;
+        case "GCP":
+            if (!creds.gcpKeyJson) throw new Error("GCP service account key is missing");
+            dataPoints = await fetchGcpCostsByService(
+                { gcpKeyJson: creds.gcpKeyJson, externalAccountId: creds.externalAccountId },
+                startDate,
+                endDate
+            );
+            break;
+        case "AZURE":
+            if (!creds.azureTenantId || !creds.azureClientId || !creds.azureClientSecret || !creds.azureSubscriptionId) {
+                throw new Error("Azure credentials are incomplete");
+            }
+            dataPoints = await fetchAzureCostsByService(
+                {
+                    azureTenantId: creds.azureTenantId,
+                    azureClientId: creds.azureClientId,
+                    azureClientSecret: creds.azureClientSecret,
+                    azureSubscriptionId: creds.azureSubscriptionId,
+                    externalAccountId: creds.externalAccountId,
+                },
+                startDate,
+                endDate
+            );
+            break;
+        default:
+            throw new Error(`Provider ${creds.provider} is not supported`);
+    }
 
     // Look up projectId once for the create clause
     const account = await prisma.cloudAccount.findUnique({

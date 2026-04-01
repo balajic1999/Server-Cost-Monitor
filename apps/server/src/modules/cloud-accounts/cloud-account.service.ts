@@ -10,12 +10,18 @@ export async function createCloudAccount(userId: string, input: CreateCloudAccou
     });
     if (!project) throw new Error("Project not found");
 
-    // Encrypt credentials if provided
+    // Encrypt credentials based on provider
     const accessKeyEncrypted = input.accessKey
         ? encrypt(input.accessKey, env.ENCRYPTION_KEY)
         : null;
     const secretKeyEncrypted = input.secretKey
         ? encrypt(input.secretKey, env.ENCRYPTION_KEY)
+        : null;
+    const gcpKeyJsonEncrypted = input.gcpKeyJson
+        ? encrypt(input.gcpKeyJson, env.ENCRYPTION_KEY)
+        : null;
+    const azureClientSecretEncrypted = input.azureClientSecret
+        ? encrypt(input.azureClientSecret, env.ENCRYPTION_KEY)
         : null;
 
     return prisma.cloudAccount.create({
@@ -28,6 +34,11 @@ export async function createCloudAccount(userId: string, input: CreateCloudAccou
             roleArn: input.roleArn ?? null,
             accessKeyEncrypted,
             secretKeyEncrypted,
+            gcpKeyJsonEncrypted,
+            azureTenantId: input.azureTenantId ?? null,
+            azureClientId: input.azureClientId ?? null,
+            azureClientSecretEncrypted,
+            azureSubscriptionId: input.azureSubscriptionId ?? null,
         },
         select: {
             id: true,
@@ -74,7 +85,7 @@ export async function deleteCloudAccount(userId: string, accountId: string) {
 
 /**
  * Retrieve decrypted credentials for a cloud account.
- * Requires verification of ownership if userId is provided.
+ * Returns provider-specific fields based on the account's provider.
  */
 export async function getDecryptedCredentials(accountId: string, userId?: string) {
     const account = await prisma.cloudAccount.findUnique({
@@ -85,6 +96,8 @@ export async function getDecryptedCredentials(accountId: string, userId?: string
 
     return {
         provider: account.provider,
+        externalAccountId: account.externalAccountId,
+        // AWS fields
         roleArn: account.roleArn,
         accessKey: account.accessKeyEncrypted
             ? decrypt(account.accessKeyEncrypted, env.ENCRYPTION_KEY)
@@ -92,6 +105,16 @@ export async function getDecryptedCredentials(accountId: string, userId?: string
         secretKey: account.secretKeyEncrypted
             ? decrypt(account.secretKeyEncrypted, env.ENCRYPTION_KEY)
             : null,
-        externalAccountId: account.externalAccountId,
+        // GCP fields
+        gcpKeyJson: account.gcpKeyJsonEncrypted
+            ? decrypt(account.gcpKeyJsonEncrypted, env.ENCRYPTION_KEY)
+            : null,
+        // Azure fields
+        azureTenantId: account.azureTenantId,
+        azureClientId: account.azureClientId,
+        azureClientSecret: account.azureClientSecretEncrypted
+            ? decrypt(account.azureClientSecretEncrypted, env.ENCRYPTION_KEY)
+            : null,
+        azureSubscriptionId: account.azureSubscriptionId,
     };
 }

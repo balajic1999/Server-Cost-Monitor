@@ -173,9 +173,17 @@ export function createCloudAccount(
         provider?: string;
         accountLabel: string;
         externalAccountId: string;
+        // AWS
         roleArn?: string;
         accessKey?: string;
         secretKey?: string;
+        // GCP
+        gcpKeyJson?: string;
+        // Azure
+        azureTenantId?: string;
+        azureClientId?: string;
+        azureClientSecret?: string;
+        azureSubscriptionId?: string;
     }
 ) {
     return apiFetch<CloudAccount>("/api/cloud-accounts", {
