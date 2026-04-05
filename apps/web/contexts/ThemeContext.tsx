@@ -2,54 +2,26 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
-type Theme = "dark" | "light";
+type Theme = "light";
 
 interface ThemeContextValue {
-    theme: Theme;
-    toggleTheme: () => void;
+  theme: Theme;
 }
 
-const ThemeContext = createContext<ThemeContextValue>({
-    theme: "dark",
-    toggleTheme: () => { },
-});
+const ThemeContext = createContext<ThemeContextValue>({ theme: "light" });
 
 export function useTheme() {
-    return useContext(ThemeContext);
+  return useContext(ThemeContext);
 }
 
+/** Single light theme — keeps provider for compatibility with any useTheme() callers */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-    const [theme, setTheme] = useState<Theme>("dark");
+  const [theme] = useState<Theme>("light");
 
-    useEffect(() => {
-        const stored = localStorage.getItem("cloudpulse-theme") as Theme | null;
-        if (stored && (stored === "dark" || stored === "light")) {
-            setTheme(stored);
-            applyTheme(stored);
-        }
-    }, []);
+  useEffect(() => {
+    document.documentElement.classList.remove("dark");
+    document.documentElement.classList.add("light");
+  }, []);
 
-    function applyTheme(t: Theme) {
-        const html = document.documentElement;
-        if (t === "dark") {
-            html.classList.add("dark");
-            html.classList.remove("light");
-        } else {
-            html.classList.add("light");
-            html.classList.remove("dark");
-        }
-    }
-
-    function toggleTheme() {
-        const next = theme === "dark" ? "light" : "dark";
-        setTheme(next);
-        applyTheme(next);
-        localStorage.setItem("cloudpulse-theme", next);
-    }
-
-    return (
-        <ThemeContext.Provider value={{ theme, toggleTheme }}>
-            {children}
-        </ThemeContext.Provider>
-    );
+  return <ThemeContext.Provider value={{ theme }}>{children}</ThemeContext.Provider>;
 }
