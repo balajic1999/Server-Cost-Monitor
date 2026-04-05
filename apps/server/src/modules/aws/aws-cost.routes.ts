@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { AuthedRequest, requireAuth } from "../../middleware/auth.middleware";
+import { sanitizeError } from "../../lib/error-utils";
 import { fetchAndStoreCosts, getCostRecords, getProjectCostSummary } from "./aws-cost.service";
 import { prisma } from "../../lib/prisma";
 
@@ -47,7 +48,8 @@ costRouter.post("/fetch", async (req: AuthedRequest, res) => {
         );
         return res.json(result);
     } catch (error) {
-        return res.status(500).json({ message: (error as Error).message });
+        const { message, status } = sanitizeError(error, 500);
+        return res.status(status).json({ message });
     }
 });
 
@@ -76,7 +78,8 @@ costRouter.get("/", async (req: AuthedRequest, res) => {
         );
         return res.json(records);
     } catch (error) {
-        return res.status(500).json({ message: (error as Error).message });
+        const { message, status } = sanitizeError(error, 500);
+        return res.status(status).json({ message });
     }
 });
 
@@ -98,7 +101,8 @@ costRouter.get("/summary/:projectId", async (req: AuthedRequest, res) => {
         const summary = await getProjectCostSummary(projectId);
         return res.json(summary);
     } catch (error) {
-        return res.status(500).json({ message: (error as Error).message });
+        const { message, status } = sanitizeError(error, 500);
+        return res.status(status).json({ message });
     }
 });
 
@@ -162,6 +166,7 @@ costRouter.get("/compare", async (req: AuthedRequest, res) => {
             meta: { days, startDate: startDate.toISOString().split("T")[0], endDate: new Date().toISOString().split("T")[0] },
         });
     } catch (error) {
-        return res.status(500).json({ message: (error as Error).message });
+        const { message, status } = sanitizeError(error, 500);
+        return res.status(status).json({ message });
     }
 });

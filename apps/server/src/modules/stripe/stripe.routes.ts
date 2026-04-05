@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import Stripe from "stripe";
 import { AuthedRequest, requireAuth } from "../../middleware/auth.middleware";
+import { sanitizeError } from "../../lib/error-utils";
 import { env } from "../../config/env";
 import {
     createCheckoutSession,
@@ -23,7 +24,8 @@ stripeRouter.post("/checkout", requireAuth, async (req: AuthedRequest, res) => {
         const result = await createCheckoutSession(req.user!.sub, user.email);
         return res.json(result);
     } catch (error) {
-        return res.status(400).json({ message: (error as Error).message });
+        const { message, status } = sanitizeError(error);
+        return res.status(status).json({ message });
     }
 });
 
@@ -33,7 +35,8 @@ stripeRouter.post("/portal", requireAuth, async (req: AuthedRequest, res) => {
         const result = await createPortalSession(req.user!.sub);
         return res.json(result);
     } catch (error) {
-        return res.status(400).json({ message: (error as Error).message });
+        const { message, status } = sanitizeError(error);
+        return res.status(status).json({ message });
     }
 });
 
@@ -43,7 +46,8 @@ stripeRouter.get("/subscription", requireAuth, async (req: AuthedRequest, res) =
         const subscription = await getSubscription(req.user!.sub);
         return res.json(subscription);
     } catch (error) {
-        return res.status(500).json({ message: (error as Error).message });
+        const { message, status } = sanitizeError(error, 500);
+        return res.status(status).json({ message });
     }
 });
 
