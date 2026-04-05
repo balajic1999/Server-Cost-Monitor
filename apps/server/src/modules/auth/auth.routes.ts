@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import bcrypt from "bcrypt";
 import { prisma } from "../../lib/prisma";
+import { sanitizeError } from "../../lib/error-utils";
 import { AuthedRequest, requireAuth } from "../../middleware/auth.middleware";
 import {
   loginUser,
@@ -35,7 +36,8 @@ authRouter.post("/register", authRateLimiter, async (req, res) => {
       user: result.user,
     });
   } catch (error) {
-    return res.status(400).json({ message: (error as Error).message });
+    const { message, status } = sanitizeError(error);
+    return res.status(status).json({ message });
   }
 });
 
@@ -56,7 +58,8 @@ authRouter.post("/login", authRateLimiter, async (req, res) => {
       user: result.user,
     });
   } catch (error) {
-    return res.status(401).json({ message: (error as Error).message });
+    const { message } = sanitizeError(error, 401);
+    return res.status(401).json({ message });
   }
 });
 
@@ -77,7 +80,8 @@ authRouter.post("/refresh", async (req: Request, res: Response) => {
   } catch (error) {
     // Clear invalid cookies
     clearAuthCookies(res);
-    return res.status(401).json({ message: (error as Error).message });
+    const { message } = sanitizeError(error, 401);
+    return res.status(401).json({ message });
   }
 });
 
@@ -175,7 +179,8 @@ authRouter.post("/forgot-password", authRateLimiter, async (req, res) => {
 
     return res.json({ message: "If that email is registered, a reset link has been sent." });
   } catch (error) {
-    return res.status(500).json({ message: (error as Error).message });
+    const { message, status } = sanitizeError(error, 500);
+    return res.status(status).json({ message });
   }
 });
 
@@ -190,6 +195,7 @@ authRouter.post("/reset-password", authRateLimiter, async (req, res) => {
     await resetPassword(parsed.data.token, parsed.data.newPassword);
     return res.json({ message: "Password has been reset successfully. You can now log in." });
   } catch (error) {
-    return res.status(400).json({ message: (error as Error).message });
+    const { message, status } = sanitizeError(error);
+    return res.status(status).json({ message });
   }
 });

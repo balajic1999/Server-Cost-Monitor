@@ -37,14 +37,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             {/* Mobile overlay */}
             {sidebarOpen && (
                 <div
-                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+                    className="fixed inset-0 z-40 bg-black/50 lg:hidden"
                     onClick={() => setSidebarOpen(false)}
                 />
             )}
 
             {/* Sidebar */}
             <aside
-                className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-800 bg-slate-900/95 backdrop-blur-xl transition-transform duration-300 lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+                className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-800 bg-slate-900 transition-transform duration-200 ease-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
                     }`}
             >
                 {/* Logo + close button */}
@@ -147,7 +147,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             {/* Main content */}
             <div className="flex-1 flex flex-col min-w-0">
                 {/* Mobile header */}
-                <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-800/50 bg-slate-950/80 px-4 py-3 backdrop-blur-xl lg:hidden">
+                <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-800 bg-slate-950 px-4 py-3 lg:hidden">
                     <button
                         onClick={() => setSidebarOpen(true)}
                         className="rounded-lg p-2 text-slate-400 transition hover:text-white"

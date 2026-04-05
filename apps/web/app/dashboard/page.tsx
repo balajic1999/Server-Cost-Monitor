@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, FormEvent } from "react";
-import { useAuth } from "../../contexts/AuthContext";
+import { useEffect, useState, useMemo, FormEvent, type ReactNode } from "react";
 import { useToast } from "../../contexts/ToastContext";
 import {
     listProjects, createProject, deleteProject, Project,
@@ -38,7 +37,9 @@ export default function DashboardPage() {
                 }
                 setSummaries(map);
             })
-            .catch(() => { })
+            .catch(() => {
+                addToast("error", "Failed to load projects. Please refresh the page.");
+            })
             .finally(() => setLoading(false));
     }, []);
 
@@ -53,26 +54,48 @@ export default function DashboardPage() {
         }
     }
 
-    // Cross-project totals
-    const totalToday = Object.values(summaries).reduce((s, v) => s + Number(v.todaySpend ?? 0), 0);
-    const totalMonth = Object.values(summaries).reduce((s, v) => s + Number(v.monthSpend ?? 0), 0);
-    const totalForecast = Object.values(summaries).reduce((s, v) => s + Number(v.monthForecast ?? 0), 0);
-    const totalAccounts = projects.reduce((s, p) => s + p.cloudAccounts.length, 0);
+    const { totalToday, totalMonth, totalForecast, totalAccounts } = useMemo(() => {
+        const vals = Object.values(summaries);
+        return {
+            totalToday: vals.reduce((s, v) => s + Number(v.todaySpend ?? 0), 0),
+            totalMonth: vals.reduce((s, v) => s + Number(v.monthSpend ?? 0), 0),
+            totalForecast: vals.reduce((s, v) => s + Number(v.monthForecast ?? 0), 0),
+            totalAccounts: projects.reduce((s, p) => s + p.cloudAccounts.length, 0),
+        };
+    }, [summaries, projects]);
+
+    const quickInsights = useMemo(() => {
+        if (projects.length === 0 || Object.keys(summaries).length === 0) return null;
+        const topProject = projects.reduce((best, p) => {
+            const spend = Number(summaries[p.id]?.monthSpend ?? 0);
+            const bestSpend = Number(summaries[best.id]?.monthSpend ?? 0);
+            return spend > bestSpend ? p : best;
+        }, projects[0]);
+        const topSpend = Number(summaries[topProject.id]?.monthSpend ?? 0);
+        const highestToday = projects.reduce((best, p) => {
+            const spend = Number(summaries[p.id]?.todaySpend ?? 0);
+            const bestSpend = Number(summaries[best.id]?.todaySpend ?? 0);
+            return spend > bestSpend ? p : best;
+        }, projects[0]);
+        const todayMax = Number(summaries[highestToday.id]?.todaySpend ?? 0);
+        const totalServices = Object.values(summaries).reduce((s, v) => s + (v.serviceCount ?? 0), 0);
+        return { topProject, topSpend, highestToday, todayMax, totalServices };
+    }, [projects, summaries]);
 
     if (loading) {
         return (
             <div className="space-y-6 animate-pulse">
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {[...Array(4)].map((_, i) => (
-                        <div key={i} className="rounded-xl border border-slate-800/50 bg-slate-900/30 p-5">
-                            <div className="h-3 w-20 rounded animate-shimmer" />
-                            <div className="mt-3 h-7 w-24 rounded animate-shimmer" />
+                        <div key={i} className="rounded-xl border border-slate-800 bg-slate-900/40 p-5">
+                            <div className="h-3 w-20 rounded bg-slate-800" />
+                            <div className="mt-3 h-7 w-24 rounded bg-slate-800" />
                         </div>
                     ))}
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {[...Array(3)].map((_, i) => (
-                        <div key={i} className="rounded-2xl border border-slate-800/50 bg-slate-900/30 p-6 h-40 animate-shimmer" />
+                        <div key={i} className="h-36 rounded-xl border border-slate-800 bg-slate-900/40 p-6" />
                     ))}
                 </div>
             </div>
@@ -91,7 +114,7 @@ export default function DashboardPage() {
                 </div>
                 <button
                     onClick={() => setShowModal(true)}
-                    className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:from-indigo-500 hover:to-violet-500"
+                    className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500"
                 >
                     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -106,7 +129,7 @@ export default function DashboardPage() {
                     <OverviewCard
                         label="Today's Total"
                         value={`$${totalToday.toFixed(2)}`}
-                        color="from-indigo-500/20 to-indigo-500/5 border-indigo-500/20"
+                        accent="border-l-indigo-500"
                         icon={
                             <svg className="h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -116,7 +139,7 @@ export default function DashboardPage() {
                     <OverviewCard
                         label="This Month (All)"
                         value={`$${totalMonth.toFixed(2)}`}
-                        color="from-violet-500/20 to-violet-500/5 border-violet-500/20"
+                        accent="border-l-violet-500"
                         icon={
                             <svg className="h-5 w-5 text-violet-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
@@ -126,7 +149,7 @@ export default function DashboardPage() {
                     <OverviewCard
                         label="Forecast (All)"
                         value={`$${totalForecast.toFixed(2)}`}
-                        color="from-emerald-500/20 to-emerald-500/5 border-emerald-500/20"
+                        accent="border-l-emerald-500"
                         icon={
                             <svg className="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
@@ -137,7 +160,7 @@ export default function DashboardPage() {
                         label="Projects"
                         value={`${projects.length}`}
                         subtitle={`${totalAccounts} account${totalAccounts !== 1 ? "s" : ""} connected`}
-                        color="from-amber-500/20 to-amber-500/5 border-amber-500/20"
+                        accent="border-l-amber-500"
                         icon={
                             <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
@@ -148,63 +171,40 @@ export default function DashboardPage() {
             )}
 
             {/* Quick Insights */}
-            {projects.length > 0 && Object.keys(summaries).length > 0 && (() => {
-                // Top spending project
-                const topProject = projects.reduce((best, p) => {
-                    const spend = Number(summaries[p.id]?.monthSpend ?? 0);
-                    const bestSpend = Number(summaries[best.id]?.monthSpend ?? 0);
-                    return spend > bestSpend ? p : best;
-                }, projects[0]);
-                const topSpend = Number(summaries[topProject.id]?.monthSpend ?? 0);
-
-                // Highest today spend
-                const highestToday = projects.reduce((best, p) => {
-                    const spend = Number(summaries[p.id]?.todaySpend ?? 0);
-                    const bestSpend = Number(summaries[best.id]?.todaySpend ?? 0);
-                    return spend > bestSpend ? p : best;
-                }, projects[0]);
-                const todayMax = Number(summaries[highestToday.id]?.todaySpend ?? 0);
-
-                // Services count
-                const totalServices = Object.values(summaries).reduce(
-                    (s, v) => s + (v.serviceCount ?? 0), 0
-                );
-
-                return (
-                    <div className="grid gap-4 sm:grid-cols-3">
-                        <div className="rounded-xl border border-indigo-500/20 bg-gradient-to-br from-indigo-500/10 to-transparent p-4">
-                            <div className="flex items-center gap-2 text-xs text-indigo-400 font-medium mb-2">
-                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
-                                </svg>
-                                Top Spender
-                            </div>
-                            <p className="text-lg font-bold text-white">{topProject.name}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">${topSpend.toFixed(2)} this month</p>
+            {quickInsights && (
+                <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/50 border-l-4 border-l-indigo-500 p-4">
+                        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-indigo-400">
+                            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+                            </svg>
+                            Top Spender
                         </div>
-                        <div className="rounded-xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-transparent p-4">
-                            <div className="flex items-center gap-2 text-xs text-amber-400 font-medium mb-2">
-                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Highest Today
-                            </div>
-                            <p className="text-lg font-bold text-white">{highestToday.name}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">${todayMax.toFixed(2)} so far today</p>
-                        </div>
-                        <div className="rounded-xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 to-transparent p-4">
-                            <div className="flex items-center gap-2 text-xs text-emerald-400 font-medium mb-2">
-                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L12 12.75 6.429 9.75M12 12.75l5.571 3m-5.571-3v6.75m5.571-3L21.75 12l-4.179-2.25" />
-                                </svg>
-                                Active Services
-                            </div>
-                            <p className="text-lg font-bold text-white">{totalServices}</p>
-                            <p className="text-xs text-slate-400 mt-0.5">across all projects</p>
-                        </div>
+                        <p className="text-lg font-bold text-white">{quickInsights.topProject.name}</p>
+                        <p className="mt-0.5 text-xs text-slate-400">${quickInsights.topSpend.toFixed(2)} this month</p>
                     </div>
-                );
-            })()}
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/50 border-l-4 border-l-amber-500 p-4">
+                        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-amber-400">
+                            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Highest Today
+                        </div>
+                        <p className="text-lg font-bold text-white">{quickInsights.highestToday.name}</p>
+                        <p className="mt-0.5 text-xs text-slate-400">${quickInsights.todayMax.toFixed(2)} so far today</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-800 bg-slate-900/50 border-l-4 border-l-emerald-500 p-4">
+                        <div className="mb-2 flex items-center gap-2 text-xs font-medium text-emerald-400">
+                            <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6.429 9.75L2.25 12l4.179 2.25m0-4.5l5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L12 12.75 6.429 9.75M12 12.75l5.571 3m-5.571-3v6.75m5.571-3L21.75 12l-4.179-2.25" />
+                            </svg>
+                            Active Services
+                        </div>
+                        <p className="text-lg font-bold text-white">{quickInsights.totalServices}</p>
+                        <p className="mt-0.5 text-xs text-slate-400">across all projects</p>
+                    </div>
+                </div>
+            )}
 
             {/* Projects section */}
             <div>
@@ -234,11 +234,11 @@ export default function DashboardPage() {
                             const todaySpend = Number(s?.todaySpend ?? 0);
 
                             return (
-                                <div key={p.id} className="group relative rounded-2xl border border-slate-800 bg-slate-900/60 p-6 transition hover:border-slate-700 hover:bg-slate-900">
+                                <div key={p.id} className="group relative rounded-xl border border-slate-800 bg-slate-900/50 p-6 transition-colors hover:border-slate-700">
                                     <Link href={`/dashboard/projects/${p.id}`} className="absolute inset-0 z-10" />
 
                                     <div className="mb-4 flex items-start justify-between">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 text-indigo-400">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-400">
                                             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                                                 <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
                                             </svg>
@@ -292,8 +292,8 @@ export default function DashboardPage() {
 
             {/* Quick Tips */}
             {projects.length > 0 && (
-                <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-                    <h3 className="mb-4 text-lg font-semibold text-white flex items-center gap-2">
+                <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-6">
+                    <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white">
                         <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
                         </svg>
@@ -301,7 +301,7 @@ export default function DashboardPage() {
                     </h3>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                         {getCostTips(totalMonth, totalForecast, totalToday, projects.length).map((tip, i) => (
-                            <div key={i} className="flex items-start gap-3 rounded-xl border border-slate-800 bg-slate-800/30 p-4">
+                            <div key={i} className="flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-900/30 p-4">
                                 <span className="mt-0.5 text-lg">{tip.emoji}</span>
                                 <div>
                                     <p className="text-sm font-medium text-white">{tip.title}</p>
@@ -380,11 +380,11 @@ function getCostTips(monthTotal: number, forecast: number, todaySpend: number, p
 
 /* ─── Overview Card ──────────────────────────────────────── */
 
-function OverviewCard({ label, value, color, icon, subtitle }: {
-    label: string; value: string; color: string; icon: React.ReactNode; subtitle?: string;
+function OverviewCard({ label, value, accent, icon, subtitle }: {
+    label: string; value: string; accent: string; icon: ReactNode; subtitle?: string;
 }) {
     return (
-        <div className={`rounded-xl border bg-gradient-to-br p-5 ${color}`}>
+        <div className={`rounded-xl border border-slate-800 bg-slate-900/50 border-l-4 p-5 ${accent}`}>
             <div className="flex items-center justify-between">
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-400">{label}</p>
                 {icon}
@@ -404,43 +404,40 @@ function CreateProjectModal({
     onClose: () => void;
     onCreated: (p: Project) => void;
 }) {
-
+    const { addToast } = useToast();
     const [name, setName] = useState("");
     const [timezone, setTimezone] = useState("UTC");
-    const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
 
-        setError("");
+        if (!name.trim()) {
+            addToast("warning", "Please enter a project name.");
+            return;
+        }
+
         setLoading(true);
         try {
-            const project = await createProject({ name, timezone });
+            const project = await createProject({ name: name.trim(), timezone });
             onCreated(project);
         } catch (err) {
-            setError((err as Error).message);
+            addToast("error", (err as Error).message || "Failed to create project. Please try again.");
         } finally {
             setLoading(false);
         }
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
             <div
-                className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-2xl mx-4"
+                className="mx-4 w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-8 shadow-xl"
                 onClick={(e) => e.stopPropagation()}
             >
                 <h2 className="text-xl font-bold text-white">New Project</h2>
                 <p className="mt-1 text-sm text-slate-400">Set up a new cloud cost monitoring project</p>
 
                 <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-                    {error && (
-                        <div className="rounded-lg border border-red-800/50 bg-red-950/50 px-4 py-3 text-sm text-red-300">
-                            {error}
-                        </div>
-                    )}
-
                     <div>
                         <label htmlFor="project-name" className="mb-1.5 block text-sm font-medium text-slate-300">Project Name</label>
                         <input
@@ -488,7 +485,7 @@ function CreateProjectModal({
                         <button
                             type="submit"
                             disabled={loading}
-                            className="rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition hover:from-indigo-500 hover:to-violet-500 disabled:opacity-50"
+                            className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-50"
                         >
                             {loading ? "Creating…" : "Create Project"}
                         </button>

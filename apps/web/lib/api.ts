@@ -60,10 +60,24 @@ async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promise<T> {
         }
     }
 
-    const body = await res.json();
+    const text = await res.text();
+    let body: unknown;
+    try {
+        body = text ? JSON.parse(text) : {};
+    } catch {
+        if (!res.ok) {
+            throw new Error(text.trim().slice(0, 200) || "Request failed");
+        }
+        throw new Error("Invalid response from server");
+    }
 
     if (!res.ok) {
-        throw new Error(body.message ?? "Request failed");
+        const o = body as { message?: unknown; error?: unknown };
+        const msg =
+            (o.message != null && String(o.message)) ||
+            (o.error != null && String(o.error)) ||
+            "Request failed";
+        throw new Error(msg);
     }
 
     return body as T;
@@ -214,6 +228,8 @@ export interface CostSummary {
     todaySpend: number;
     monthSpend: number;
     monthForecast: number;
+    /** Present when the API includes per-project service cardinality */
+    serviceCount?: number;
 }
 
 export function fetchCosts(cloudAccountId: string, startDate: string, endDate: string) {

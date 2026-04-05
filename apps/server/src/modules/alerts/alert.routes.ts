@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { AuthedRequest, requireAuth } from "../../middleware/auth.middleware";
+import { sanitizeError } from "../../lib/error-utils";
 import { createAlertRuleSchema, updateAlertRuleSchema } from "./alert.schema";
 import {
     createAlertRule,
@@ -23,7 +24,8 @@ alertRouter.post("/", async (req: AuthedRequest, res) => {
         const rule = await createAlertRule(req.user!.sub, parsed.data);
         return res.status(201).json(rule);
     } catch (error) {
-        return res.status(400).json({ message: (error as Error).message });
+        const { message, status } = sanitizeError(error);
+        return res.status(status).json({ message });
     }
 });
 

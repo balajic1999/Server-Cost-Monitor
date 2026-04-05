@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireAuth, AuthedRequest } from "../../middleware/auth.middleware";
+import { sanitizeError } from "../../lib/error-utils";
 import { getActivity } from "./activity.service";
 
 export const activityRouter = Router();
@@ -10,6 +11,7 @@ activityRouter.get("/", requireAuth, async (req: AuthedRequest, res) => {
         const logs = await getActivity(req.userId!, limit);
         res.json(logs);
     } catch (err) {
-        res.status(500).json({ error: (err as Error).message });
+        const { message, status } = sanitizeError(err, 500);
+        res.status(status).json({ message });
     }
 });

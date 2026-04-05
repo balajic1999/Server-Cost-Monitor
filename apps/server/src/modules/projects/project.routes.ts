@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { AuthedRequest, requireAuth } from "../../middleware/auth.middleware";
+import { sanitizeError } from "../../lib/error-utils";
 import { createProjectSchema, updateProjectSchema } from "./project.schema";
 import {
     createProject,
@@ -27,9 +28,8 @@ projectRouter.post("/", async (req: AuthedRequest, res) => {
         const project = await createProject(req.user!.sub, parsed.data);
         return res.status(201).json(project);
     } catch (error) {
-        const msg = (error as Error).message;
-        const status = msg.includes("Unique constraint") ? 409 : 400;
-        return res.status(status).json({ message: msg });
+        const { message, status } = sanitizeError(error);
+        return res.status(status).json({ message });
     }
 });
 
@@ -66,9 +66,8 @@ projectRouter.patch("/:id", async (req: AuthedRequest, res) => {
         );
         return res.json(project);
     } catch (error) {
-        const msg = (error as Error).message;
-        const status = msg.includes("not found") ? 404 : 400;
-        return res.status(status).json({ message: msg });
+        const { message, status } = sanitizeError(error);
+        return res.status(status).json({ message });
     }
 });
 
