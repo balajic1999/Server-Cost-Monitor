@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
-import { useToast } from "../../../contexts/ToastContext";
 import {
     listProjects, Project,
     getProjectCostSummary, CostSummary,
@@ -26,7 +25,6 @@ type RangePreset = "7d" | "14d" | "30d" | "90d";
 
 export default function ComparePage() {
 
-    const { addToast } = useToast();
     const [data, setData] = useState<ProjectData[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -92,7 +90,7 @@ export default function ComparePage() {
             setData(results);
             setSelectedIds(results.map((r) => r.project.id));
         } catch (err) {
-            addToast("error", "Failed to load comparison data. Please try again.");
+            console.error(err);
         } finally {
             setLoading(false);
         }

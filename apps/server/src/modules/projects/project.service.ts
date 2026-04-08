@@ -1,5 +1,4 @@
 import { prisma } from "../../lib/prisma";
-import { AppError } from "../../lib/app-error";
 import { CreateProjectInput, UpdateProjectInput } from "./project.schema";
 
 const FREE_PROJECT_LIMIT = 1;
@@ -17,17 +16,6 @@ export async function createProject(userId: string, input: CreateProjectInput) {
         if (count >= FREE_PROJECT_LIMIT) {
             throw new Error("Free plan allows only 1 project. Upgrade to Pro for unlimited projects.");
         }
-    }
-
-    const nameTaken = await prisma.project.findFirst({
-        where: { userId, name: input.name },
-        select: { id: true },
-    });
-    if (nameTaken) {
-        throw new AppError(
-            409,
-            "A project with this name already exists. Please choose a different name."
-        );
     }
 
     return prisma.project.create({

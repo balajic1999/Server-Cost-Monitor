@@ -110,7 +110,6 @@ export default function ProjectDetailPage() {
 
 function OverviewTab({ projectId }: { projectId: string }) {
 
-    const { addToast } = useToast();
     const [summary, setSummary] = useState<CostSummary | null>(null);
     const [records, setRecords] = useState<CostRecord[]>([]);
     const [accounts, setAccounts] = useState<CloudAccount[]>([]);
@@ -170,9 +169,7 @@ function OverviewTab({ projectId }: { projectId: string }) {
                 );
                 setRecords(allRecords.flat());
             })
-            .catch(() => {
-                addToast("error", "Failed to load cost data. Please try again.");
-            })
+            .catch(() => { })
             .finally(() => setLoading(false));
     }, [projectId, rangePreset, customStart, customEnd]);
 
@@ -609,12 +606,12 @@ function CostBarChart({ records, avgDailySpend, rangeLabel }: { records: CostRec
     const yLabels = [0, maxVal * 0.25, maxVal * 0.5, maxVal * 0.75, maxVal];
 
     return (
-        <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-6">
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
             <div className="mb-1 flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-white">Cost Trend ({rangeLabel})</h3>
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1.5">
-                        <span className="h-2.5 w-2.5 rounded-sm bg-indigo-500" />
+                        <span className="h-2.5 w-2.5 rounded-sm bg-gradient-to-t from-indigo-500 to-violet-500" />
                         <span className="text-xs text-slate-400">Daily cost</span>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -652,7 +649,9 @@ function CostBarChart({ records, avgDailySpend, rangeLabel }: { records: CostRec
                             return (
                                 <div key={date} className="group relative flex-1 flex flex-col justify-end h-full">
                                     <div
-                                        className={`rounded-t cursor-pointer transition-opacity hover:opacity-90 ${isHigh ? "bg-amber-500" : "bg-indigo-500"
+                                        className={`rounded-t transition-all duration-300 cursor-pointer ${isHigh
+                                            ? "bg-gradient-to-t from-amber-500 to-orange-400 hover:from-amber-400 hover:to-orange-300"
+                                            : "bg-gradient-to-t from-indigo-500 to-violet-500 hover:from-indigo-400 hover:to-violet-400"
                                             }`}
                                         style={{ height: `${Math.max((amount / maxVal) * 100, 1)}%`, minHeight: "3px" }}
                                     />
@@ -705,9 +704,7 @@ function AccountsTab({ projectId }: { projectId: string }) {
 
         listCloudAccounts(projectId)
             .then(setAccounts)
-            .catch(() => {
-                addToast("error", "Failed to load cloud accounts.");
-            })
+            .catch(() => { })
             .finally(() => setLoading(false));
     }, [projectId]);
 
@@ -836,7 +833,6 @@ function AccountsTab({ projectId }: { projectId: string }) {
 
 function AddAccountModal({ projectId, onClose, onCreated }: { projectId: string; onClose: () => void; onCreated: (acc: CloudAccount) => void }) {
 
-    const { addToast } = useToast();
     type Provider = "AWS" | "GCP" | "AZURE";
     const [provider, setProvider] = useState<Provider>("AWS");
     const [authType, setAuthType] = useState<"role" | "keys">("keys");
@@ -854,6 +850,7 @@ function AddAccountModal({ projectId, onClose, onCreated }: { projectId: string;
     const [azureClientSecret, setAzureClientSecret] = useState("");
     const [azureSubscriptionId, setAzureSubscriptionId] = useState("");
 
+    const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
     const providerConfig: Record<Provider, { label: string; color: string; activeColor: string; icon: string; idLabel: string; idPlaceholder: string }> = {
@@ -865,6 +862,7 @@ function AddAccountModal({ projectId, onClose, onCreated }: { projectId: string;
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
 
+        setError("");
         setLoading(true);
         try {
             const base = { projectId, provider, accountLabel: label, externalAccountId: accountId };
@@ -877,10 +875,9 @@ function AddAccountModal({ projectId, onClose, onCreated }: { projectId: string;
                 creds = { azureTenantId, azureClientId, azureClientSecret, azureSubscriptionId };
             }
             const acc = await createCloudAccount({ ...base, ...creds });
-            addToast("success", `Cloud account "${label}" connected successfully!`);
             onCreated(acc);
         } catch (err) {
-            addToast("error", (err as Error).message || "Failed to connect cloud account. Please check your credentials.");
+            setError((err as Error).message);
         } finally {
             setLoading(false);
         }
@@ -889,7 +886,7 @@ function AddAccountModal({ projectId, onClose, onCreated }: { projectId: string;
     const cfg = providerConfig[provider];
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
             <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 <h2 className="text-xl font-bold text-white">Connect Cloud Account</h2>
                 <p className="mt-1 text-sm text-slate-400">Select a provider and enter credentials to start tracking costs</p>
@@ -913,6 +910,9 @@ function AddAccountModal({ projectId, onClose, onCreated }: { projectId: string;
                 </div>
 
                 <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+                    {error && (
+                        <div className="rounded-lg border border-red-800/50 bg-red-950/50 px-4 py-3 text-sm text-red-300">{error}</div>
+                    )}
 
                     <div>
                         <label className="mb-1.5 block text-sm font-medium text-slate-300">Account Label</label>
@@ -1172,21 +1172,22 @@ function AlertsTab({ projectId }: { projectId: string }) {
 
 function CreateAlertModal({ projectId, onClose, onCreated }: { projectId: string; onClose: () => void; onCreated: (rule: AlertRule) => void }) {
 
-    const { addToast } = useToast();
     const [dailyBudget, setDailyBudget] = useState("");
     const [monthlyBudget, setMonthlyBudget] = useState("");
     const [spikeThreshold, setSpikeThreshold] = useState("");
     const [emailEnabled, setEmailEnabled] = useState(true);
     const [slackWebhookUrl, setSlackWebhookUrl] = useState("");
+    const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
 
         if (!dailyBudget && !monthlyBudget && !spikeThreshold) {
-            addToast("warning", "Please set at least one alert condition.");
+            setError("At least one alert condition is required.");
             return;
         }
+        setError("");
         setLoading(true);
         try {
             const rule = await createAlertRule({
@@ -1197,23 +1198,22 @@ function CreateAlertModal({ projectId, onClose, onCreated }: { projectId: string
                 emailEnabled,
                 ...(slackWebhookUrl ? { slackWebhookUrl } : {}),
             });
-            addToast("success", "Alert rule created successfully!");
             onCreated(rule);
         } catch (err) {
-            addToast("error", (err as Error).message || "Failed to create alert rule. Please try again.");
+            setError((err as Error).message);
         } finally {
             setLoading(false);
         }
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
             <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-8 shadow-2xl" onClick={(e) => e.stopPropagation()}>
                 <h2 className="text-xl font-bold text-white">New Alert Rule</h2>
                 <p className="mt-1 text-sm text-slate-400">Get notified when spending exceeds thresholds</p>
 
                 <form onSubmit={handleSubmit} className="mt-6 space-y-4">
-
+                    {error && <div className="rounded-lg border border-red-800/50 bg-red-950/50 px-4 py-3 text-sm text-red-300">{error}</div>}
 
                     <div>
                         <label className="mb-1.5 block text-sm font-medium text-slate-300">Daily Budget ($)</label>

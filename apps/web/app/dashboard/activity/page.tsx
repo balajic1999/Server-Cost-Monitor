@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
-import { useToast } from "../../../contexts/ToastContext";
 import { getActivityLog, ActivityLogEntry } from "../../../lib/api";
 
 const ACTION_META: Record<string, { icon: string; label: string; color: string }> = {
@@ -33,7 +32,6 @@ function relativeTime(dateStr: string): string {
 
 export default function ActivityPage() {
 
-    const { addToast } = useToast();
     const [logs, setLogs] = useState<ActivityLogEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<string>("ALL");
@@ -45,7 +43,7 @@ export default function ActivityPage() {
             const data = await getActivityLog(100);
             setLogs(data);
         } catch {
-            addToast("error", "Failed to load activity log.");
+            // ignore
         } finally {
             setLoading(false);
         }

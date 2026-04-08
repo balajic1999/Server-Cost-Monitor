@@ -70,7 +70,7 @@ function ResetPasswordForm() {
                 </div>
 
                 {success ? (
-                    <div className="space-y-4 rounded-xl border border-slate-800 bg-slate-900 p-8">
+                    <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-8 backdrop-blur">
                         <div className="flex items-center gap-2 rounded-lg border border-emerald-800/50 bg-emerald-950/50 px-4 py-3 text-sm text-emerald-300">
                             <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -82,7 +82,7 @@ function ResetPasswordForm() {
                         </div>
                     </div>
                 ) : (
-                    <form onSubmit={handleSubmit} className="space-y-5 rounded-xl border border-slate-800 bg-slate-900 p-8">
+                    <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-slate-800 bg-slate-900/70 p-8 backdrop-blur">
                         {error && (
                             <div className="flex items-center gap-2 rounded-lg border border-red-800/50 bg-red-950/50 px-4 py-3 text-sm text-red-300">
                                 <svg className="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
