@@ -14,7 +14,7 @@ let worker: Worker | null = null;
 export async function startCostFetchWorker(): Promise<void> {
     const connection = getRedis();
 
-    queue = new Queue(QUEUE_NAME, { connection: connection as any });
+    queue = new Queue(QUEUE_NAME, { connection });
 
     // Add repeatable job: every 6 hours
     await queue.add(
@@ -38,7 +38,7 @@ export async function startCostFetchWorker(): Promise<void> {
             return await executeCostFetchJob();
         },
         {
-            connection: connection as any,
+            connection,
             concurrency: 1, // Process one job at a time
         }
     );
@@ -48,13 +48,7 @@ export async function startCostFetchWorker(): Promise<void> {
     });
 
     worker.on("failed", (job, err) => {
-        // Explicit critical logging for dead-lettered jobs to ensure they aren't missed
-        logger.error(`[CRITICAL] Background Job DEAD-LETTERED: ${job?.name} (${job?.id})`, {
-            error: err.message,
-            stack: err.stack,
-            failedReason: job?.failedReason,
-            attempts: job?.attemptsMade
-        });
+        logger.error(`Job ${job?.id} failed: ${err.message}`);
     });
 }
 

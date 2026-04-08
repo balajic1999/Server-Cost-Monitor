@@ -14,12 +14,15 @@ import {
 } from "./auth.service";
 import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema } from "./auth.schema";
 import { z } from "zod";
-import { authRateLimiter } from "../../middleware/rate-limiter.middleware";
+import { rateLimit } from "../../middleware/rate-limit.middleware";
 
 export const authRouter = Router();
 
+// ── Rate limiters ────────────────────────────────────
+const authLimiter = rateLimit(15 * 60 * 1000, 10); // 10 attempts per 15 min
+
 // ── Register ─────────────────────────────────────────
-authRouter.post("/register", authRateLimiter, async (req, res) => {
+authRouter.post("/register", authLimiter, async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ message: "Validation failed", errors: parsed.error.flatten() });
@@ -40,7 +43,7 @@ authRouter.post("/register", authRateLimiter, async (req, res) => {
 });
 
 // ── Login ────────────────────────────────────────────
-authRouter.post("/login", authRateLimiter, async (req, res) => {
+authRouter.post("/login", authLimiter, async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ message: "Validation failed", errors: parsed.error.flatten() });
@@ -156,7 +159,9 @@ authRouter.put("/me/password", requireAuth, async (req: AuthedRequest, res) => {
 });
 
 // ── Forgot Password (public) ────────────────────────
-authRouter.post("/forgot-password", authRateLimiter, async (req, res) => {
+const forgotPasswordLimiter = rateLimit(15 * 60 * 1000, 5);
+
+authRouter.post("/forgot-password", forgotPasswordLimiter, async (req, res) => {
   const parsed = forgotPasswordSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ message: "Validation failed", errors: parsed.error.flatten() });
@@ -180,7 +185,9 @@ authRouter.post("/forgot-password", authRateLimiter, async (req, res) => {
 });
 
 // ── Reset Password (public) ─────────────────────────
-authRouter.post("/reset-password", authRateLimiter, async (req, res) => {
+const resetPasswordLimiter = rateLimit(15 * 60 * 1000, 5);
+
+authRouter.post("/reset-password", resetPasswordLimiter, async (req, res) => {
   const parsed = resetPasswordSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ message: "Validation failed", errors: parsed.error.flatten() });

@@ -33,11 +33,12 @@ app.use(requestIdMiddleware);
 app.use("/api/stripe/webhook", express.raw({ type: "application/json" }));
 
 app.use(express.json({ limit: "1mb" }));
-import { apiRateLimiter } from "./middleware/rate-limiter.middleware";
-
-// ... existing code ...
-app.use(express.json({ limit: "1mb" }));
-app.use("/api", apiRateLimiter);
+app.use(
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 300
+  })
+);
 
 app.get("/health", async (_req, res) => {
   let dbStatus = "connected";
