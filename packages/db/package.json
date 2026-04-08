@@ -5,13 +5,17 @@
   "scripts": {
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:migrate": "dotenv -e ../../.env -- prisma migrate dev --schema prisma/schema.prisma",
-    "prisma:deploy": "dotenv -e ../../.env -- prisma migrate deploy --schema prisma/schema.prisma"
+    "prisma:deploy": "dotenv -e ../../.env -- prisma migrate deploy --schema prisma/schema.prisma",
+    "db:seed": "dotenv -e ../../.env -- tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "bcrypt": "^5.1.1",
     "dotenv-cli": "^7.4.2",
-    "prisma": "^5.20.0"
+    "prisma": "^5.20.0",
+    "tsx": "^4.19.1"
   }
 }
