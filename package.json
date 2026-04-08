@@ -10,8 +10,7 @@
     "dev": "concurrently \"npm run dev --workspace @cloudpulse/server\" \"npm run dev --workspace @cloudpulse/web\"",
     "build": "npm run build --workspaces",
     "lint": "npm run lint --workspaces",
-    "typecheck": "npm run typecheck --workspaces",
-    "db:seed": "npm run db:seed --workspace @cloudpulse/db"
+    "typecheck": "npm run typecheck --workspaces"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

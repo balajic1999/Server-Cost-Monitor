@@ -2,33 +2,343 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  html {
-    @apply antialiased;
-  }
+body {
+  @apply bg-slate-950 text-slate-100;
+}
 
-  body {
-    @apply bg-zinc-50 text-zinc-900;
-  }
+/* ──────────────────────────────────────────────────────
+   Light Mode — Soft, warm, low-contrast palette
+   ────────────────────────────────────────────────────── */
+
+html.light body {
+  background-color: #f6f7f9;
+  color: #3b4252;
+}
+
+/* Backgrounds — warm off-whites, never pure white */
+html.light .bg-slate-950 {
+  background-color: #f6f7f9;
+}
+
+html.light .bg-slate-950\/80 {
+  background-color: rgba(246, 247, 249, 0.92);
+}
+
+html.light .bg-slate-900 {
+  background-color: #fafbfc;
+}
+
+html.light .bg-slate-900\/95 {
+  background-color: rgba(250, 251, 252, 0.97);
+}
+
+html.light .bg-slate-900\/80 {
+  background-color: rgba(250, 251, 252, 0.88);
+}
+
+html.light .bg-slate-900\/70 {
+  background-color: rgba(250, 251, 252, 0.80);
+}
+
+html.light .bg-slate-900\/60 {
+  background-color: rgba(250, 251, 252, 0.72);
+}
+
+html.light .bg-slate-900\/50 {
+  background-color: rgba(250, 251, 252, 0.65);
+}
+
+html.light .bg-slate-900\/40 {
+  background-color: rgba(250, 251, 252, 0.55);
+}
+
+html.light .bg-slate-900\/30 {
+  background-color: rgba(246, 247, 249, 0.60);
+}
+
+html.light .bg-slate-800 {
+  background-color: #eef0f4;
+}
+
+html.light .bg-slate-800\/50 {
+  background-color: rgba(238, 240, 244, 0.55);
+}
+
+html.light .bg-slate-800\/30 {
+  background-color: rgba(238, 240, 244, 0.35);
+}
+
+html.light .bg-slate-700 {
+  background-color: #e2e5ea;
+}
+
+/* Text — muted, warm tones, never pure black */
+html.light .text-white {
+  color: #2e3440;
+}
+
+html.light .text-slate-100 {
+  color: #3b4252;
+}
+
+html.light .text-slate-300 {
+  color: #5e6778;
+}
+
+html.light .text-slate-400 {
+  color: #7b839a;
+}
+
+html.light .text-slate-500 {
+  color: #9ba3b5;
+}
+
+html.light .text-slate-600 {
+  color: #a8b0c0;
+}
+
+/* Borders — subtle, barely there */
+html.light .border-slate-800 {
+  border-color: #e5e8ed;
+}
+
+html.light .border-slate-800\/50 {
+  border-color: rgba(229, 232, 237, 0.55);
+}
+
+html.light .border-slate-700 {
+  border-color: #dde0e6;
+}
+
+html.light .divide-slate-800>*+* {
+  border-color: #e5e8ed;
+}
+
+/* Inputs */
+html.light input,
+html.light textarea,
+html.light select {
+  background-color: #ffffff !important;
+  border-color: #dde0e6 !important;
+  color: #2e3440 !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #a8b0c0 !important;
+}
+
+html.light input:focus,
+html.light textarea:focus {
+  border-color: #818cf8 !important;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.12) !important;
+}
+
+/* Cards & containers — soft shadows instead of harsh borders */
+html.light .rounded-2xl {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+/* Hover states */
+html.light .hover\:bg-slate-800:hover {
+  background-color: #e8ebf0 !important;
+}
+
+html.light .hover\:bg-slate-900\/80:hover {
+  background-color: rgba(250, 251, 252, 0.92) !important;
+}
+
+html.light .hover\:text-white:hover {
+  color: #1e2530 !important;
+}
+
+html.light .hover\:border-slate-600:hover {
+  border-color: #c8cdd5 !important;
+}
+
+html.light .hover\:border-slate-700:hover {
+  border-color: #c8cdd5 !important;
+}
+
+/* Sidebar & nav */
+html.light aside {
+  box-shadow: 1px 0 4px rgba(0, 0, 0, 0.03);
+}
+
+/* Gradient overlays soften */
+html.light .bg-gradient-to-br.from-indigo-500\/20 {
+  opacity: 0.7;
+}
+
+/* ── Colored elements: amber / red / blue notices ────── */
+
+/* Amber notices (encryption warning, concentration alerts) */
+html.light .bg-amber-950\/20 {
+  background-color: rgba(251, 191, 36, 0.08) !important;
+}
+
+html.light .bg-amber-500\/5 {
+  background-color: rgba(251, 191, 36, 0.06) !important;
+}
+
+html.light .bg-amber-500\/10 {
+  background-color: rgba(251, 191, 36, 0.08) !important;
+}
+
+html.light .border-amber-800\/30 {
+  border-color: rgba(217, 119, 6, 0.25) !important;
+}
+
+html.light .border-amber-500\/30 {
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+html.light .text-amber-400 {
+  color: #b45309 !important;
+}
+
+html.light .text-amber-300 {
+  color: #d97706 !important;
+}
+
+/* Red elements (error boxes, high severity) */
+html.light .bg-red-950\/50 {
+  background-color: rgba(239, 68, 68, 0.06) !important;
+}
+
+html.light .bg-red-500\/5 {
+  background-color: rgba(239, 68, 68, 0.05) !important;
+}
+
+html.light .border-red-800\/50 {
+  border-color: rgba(220, 38, 38, 0.2) !important;
+}
+
+html.light .border-red-500\/30 {
+  border-color: rgba(239, 68, 68, 0.25) !important;
+}
+
+html.light .text-red-300 {
+  color: #dc2626 !important;
+}
+
+html.light .text-red-400 {
+  color: #dc2626 !important;
+}
+
+/* Blue elements (new service alerts, info badges) */
+html.light .bg-blue-500\/5 {
+  background-color: rgba(59, 130, 246, 0.06) !important;
+}
+
+html.light .border-blue-500\/30 {
+  border-color: rgba(59, 130, 246, 0.25) !important;
+}
+
+/* Emerald / green elements */
+html.light .text-emerald-400 {
+  color: #059669 !important;
+}
+
+html.light .bg-emerald-500\/10 {
+  background-color: rgba(16, 185, 129, 0.08) !important;
+}
+
+html.light .border-emerald-500\/30 {
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Indigo elements (badges, active states) */
+html.light .bg-indigo-500\/10 {
+  background-color: rgba(99, 102, 241, 0.08) !important;
+}
+
+html.light .border-indigo-500\/30 {
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+html.light .border-indigo-500\/20 {
+  border-color: rgba(99, 102, 241, 0.2) !important;
+}
+
+html.light .text-indigo-400 {
+  color: #4f46e5 !important;
+}
+
+html.light .text-indigo-300 {
+  color: #6366f1 !important;
+}
+
+/* Violet elements */
+html.light .text-violet-400 {
+  color: #7c3aed !important;
+}
+
+html.light .text-violet-300 {
+  color: #8b5cf6 !important;
+}
+
+/* Dialog / Modal backgrounds */
+html.light .bg-black\/60 {
+  background-color: rgba(0, 0, 0, 0.35) !important;
+}
+
+/* Specific component fixes */
+/* CSV export button & similar slate-800/80 buttons */
+html.light .bg-slate-800\/80 {
+  background-color: rgba(238, 240, 244, 0.9) !important;
+}
+
+/* Scrollbar */
+html.light ::-webkit-scrollbar-track {
+  background: #f0f1f4;
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: #c8cdd5;
+  border-radius: 4px;
 }
 
 @keyframes slide-up {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(16px) scale(0.95);
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
 .animate-slide-up {
-  animation: slide-up 0.2s ease-out;
+  animation: slide-up 0.3s ease-out;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, rgba(51, 65, 85, 0.3) 25%, rgba(51, 65, 85, 0.6) 50%, rgba(51, 65, 85, 0.3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+html.light .animate-shimmer {
+  background: linear-gradient(90deg, rgba(220, 224, 232, 0.3) 25%, rgba(220, 224, 232, 0.7) 50%, rgba(220, 224, 232, 0.3) 75%);
+  background-size: 200% 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {
+
+  .animate-shimmer,
   .animate-slide-up {
     animation: none;
   }
