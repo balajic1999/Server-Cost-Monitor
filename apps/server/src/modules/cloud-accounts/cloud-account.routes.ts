@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { AuthedRequest, requireAuth } from "../../middleware/auth.middleware";
+import { sanitizeError } from "../../lib/error-utils";
 import { createCloudAccountSchema } from "./cloud-account.schema";
 import {
     createCloudAccount,
@@ -21,9 +22,8 @@ cloudAccountRouter.post("/", async (req: AuthedRequest, res) => {
         const account = await createCloudAccount(req.user!.sub, parsed.data);
         return res.status(201).json(account);
     } catch (error) {
-        const msg = (error as Error).message;
-        const status = msg.includes("Unique constraint") ? 409 : 400;
-        return res.status(status).json({ message: msg });
+        const { message, status } = sanitizeError(error);
+        return res.status(status).json({ message });
     }
 });
 
