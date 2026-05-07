@@ -109,6 +109,28 @@ export function getMe() {
     );
 }
 
+export type SubscriptionPlan = "FREE" | "PRO" | "TEAM";
+
+export interface PlanLimitsAndUsage {
+    plan: SubscriptionPlan;
+    limits: {
+        projects: number;
+        /** Per-project cap on cloud accounts. */
+        cloudAccountsPerProject: number;
+        /** Per-project cap on alert rules. */
+        alertRulesPerProject: number;
+    };
+    /** Only globally-meaningful usage is returned. Per-project usage is already
+     *  known to the caller from the project payload itself. */
+    usage: {
+        projects: number;
+    };
+}
+
+export function getMyLimits() {
+    return apiFetch<PlanLimitsAndUsage>("/api/auth/me/limits");
+}
+
 export function refreshAuth() {
     return apiFetch<AuthResponse>("/api/auth/refresh", {
         method: "POST",
@@ -259,10 +281,18 @@ export interface AlertRule {
     monthlyBudget: number | null;
     spikeThresholdPct: number | null;
     emailEnabled: boolean;
-    slackWebhookUrl: string | null;
+    hasSlackWebhook: boolean;
     createdAt: string;
     updatedAt: string;
     _count: { alertsSent: number };
+}
+
+export interface AlertRuleUpdate {
+    dailyBudget?: number | null;
+    monthlyBudget?: number | null;
+    spikeThresholdPct?: number | null;
+    emailEnabled?: boolean;
+    slackWebhookUrl?: string | null;
 }
 
 export interface AlertSent {
@@ -293,10 +323,7 @@ export function createAlertRule(
     });
 }
 
-export function updateAlertRule(
-    ruleId: string,
-    data: Partial<Omit<AlertRule, "id" | "projectId" | "createdAt" | "updatedAt" | "_count">>
-) {
+export function updateAlertRule(ruleId: string, data: AlertRuleUpdate) {
     return apiFetch<AlertRule>(`/api/alerts/${ruleId}`, {
         method: "PATCH",
         body: JSON.stringify(data),

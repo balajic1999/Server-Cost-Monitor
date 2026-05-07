@@ -2,6 +2,7 @@ import { Router, Request, Response } from "express";
 import Stripe from "stripe";
 import { AuthedRequest, requireAuth } from "../../middleware/auth.middleware";
 import { sanitizeError } from "../../lib/error-utils";
+import { logger } from "../../lib/logger";
 import { env } from "../../config/env";
 import {
     createCheckoutSession,
@@ -61,7 +62,7 @@ stripeRouter.post(
             return res.status(400).json({ message: "Stripe is not configured" });
         }
 
-        const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2024-10-28.acacia" });
+        const stripe = new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2026-01-28.clover" });
         const sig = req.headers["stripe-signature"] as string;
 
         try {
@@ -74,7 +75,7 @@ stripeRouter.post(
             await handleWebhookEvent(event);
             return res.json({ received: true });
         } catch (error) {
-            console.error("[Stripe Webhook] Error:", (error as Error).message);
+            logger.error(`[Stripe Webhook] ${(error as Error).message}`);
             return res.status(400).json({ message: (error as Error).message });
         }
     }

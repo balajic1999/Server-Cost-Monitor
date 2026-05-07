@@ -1,23 +1,11 @@
 import { prisma } from "../../lib/prisma";
 import { AppError } from "../../lib/app-error";
+import { invalidatePlanLimitsCache } from "../../middleware/plan.middleware";
 import { CreateProjectInput, UpdateProjectInput } from "./project.schema";
 
-const FREE_PROJECT_LIMIT = 1;
-
 export async function createProject(userId: string, input: CreateProjectInput) {
-    // Check subscription plan limits
-    const subscription = await prisma.subscription.findUnique({
-        where: { userId },
-    });
-
-    const plan = subscription?.plan ?? "FREE";
-
-    if (plan === "FREE") {
-        const count = await prisma.project.count({ where: { userId } });
-        if (count >= FREE_PROJECT_LIMIT) {
-            throw new Error("Free plan allows only 1 project. Upgrade to Pro for unlimited projects.");
-        }
-    }
+    // Plan-limit enforcement lives in requirePlanLimit("projects") middleware.
+    // Service only enforces uniqueness and validates input shape.
 
     const nameTaken = await prisma.project.findFirst({
         where: { userId, name: input.name },
@@ -30,7 +18,7 @@ export async function createProject(userId: string, input: CreateProjectInput) {
         );
     }
 
-    return prisma.project.create({
+    const project = await prisma.project.create({
         data: {
             userId,
             name: input.name,
@@ -41,6 +29,12 @@ export async function createProject(userId: string, input: CreateProjectInput) {
             _count: { select: { costRecords: true, alertRules: true } },
         },
     });
+
+    // usage.projects bumped — drop the /me/limits cache so the UI sees the
+    // new count on its next fetch instead of waiting up to 30s.
+    await invalidatePlanLimitsCache(userId);
+
+    return project;
 }
 
 export async function listProjects(userId: string) {
@@ -128,5 +122,6 @@ export async function deleteProject(userId: string, projectId: string) {
     }
 
     await prisma.project.delete({ where: { id: projectId } });
+    await invalidatePlanLimitsCache(userId);
     return { deleted: true };
 }

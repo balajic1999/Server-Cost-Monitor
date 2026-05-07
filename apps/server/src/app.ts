@@ -1,7 +1,6 @@
 import cors from "cors";
 import express from "express";
 import cookieParser from "cookie-parser";
-import rateLimit from "express-rate-limit";
 import helmet from "helmet";
 import { authRouter } from "./modules/auth/auth.routes";
 import { projectRouter } from "./modules/projects/project.routes";
@@ -14,6 +13,7 @@ import { docsRouter } from "./lib/swagger";
 import { prisma } from "./lib/prisma";
 import { requestIdMiddleware } from "./middleware/request-id.middleware";
 import { errorHandler } from "./middleware/error-handler.middleware";
+import { apiRateLimiter } from "./middleware/rate-limiter.middleware";
 import { env } from "./config/env";
 
 export const app = express();
@@ -32,10 +32,6 @@ app.use(requestIdMiddleware);
 // Stripe webhook needs raw body BEFORE json parsing
 app.use("/api/stripe/webhook", express.raw({ type: "application/json" }));
 
-app.use(express.json({ limit: "1mb" }));
-import { apiRateLimiter } from "./middleware/rate-limiter.middleware";
-
-// ... existing code ...
 app.use(express.json({ limit: "1mb" }));
 app.use("/api", apiRateLimiter);
 

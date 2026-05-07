@@ -95,6 +95,7 @@ export async function getDecryptedCredentials(accountId: string, userId?: string
     if (userId && account.userId !== userId) throw new Error("Not authorized");
 
     return {
+        projectId: account.projectId,
         provider: account.provider,
         externalAccountId: account.externalAccountId,
         // AWS fields

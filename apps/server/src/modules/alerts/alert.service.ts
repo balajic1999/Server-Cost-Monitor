@@ -1,7 +1,17 @@
 import { prisma } from "../../lib/prisma";
+import type { AlertRule } from "@prisma/client";
 import { encrypt, decrypt } from "../../lib/encryption";
 import { env } from "../../config/env";
 import { CreateAlertRuleInput, UpdateAlertRuleInput } from "./alert.schema";
+
+/**
+ * Strip the encrypted Slack webhook from API responses. Clients only need to
+ * know whether one is configured — the ciphertext is server-internal.
+ */
+function toAlertRuleResponse<T extends AlertRule>(rule: T) {
+    const { slackWebhookUrl, ...rest } = rule;
+    return { ...rest, hasSlackWebhook: slackWebhookUrl !== null && slackWebhookUrl !== "" };
+}
 
 export async function createAlertRule(userId: string, input: CreateAlertRuleInput) {
     // Verify project ownership
@@ -15,7 +25,7 @@ export async function createAlertRule(userId: string, input: CreateAlertRuleInpu
         ? encrypt(input.slackWebhookUrl, env.ENCRYPTION_KEY)
         : null;
 
-    return prisma.alertRule.create({
+    const rule = await prisma.alertRule.create({
         data: {
             projectId: input.projectId,
             dailyBudget: input.dailyBudget ?? null,
@@ -25,6 +35,7 @@ export async function createAlertRule(userId: string, input: CreateAlertRuleInpu
             slackWebhookUrl: encryptedWebhookUrl,
         },
     });
+    return toAlertRuleResponse(rule);
 }
 
 export async function listAlertRules(userId: string, projectId: string) {
@@ -33,13 +44,14 @@ export async function listAlertRules(userId: string, projectId: string) {
     });
     if (!project) throw new Error("Project not found");
 
-    return prisma.alertRule.findMany({
+    const rules = await prisma.alertRule.findMany({
         where: { projectId },
         include: {
             _count: { select: { alertsSent: true } },
         },
         orderBy: { createdAt: "desc" },
     });
+    return rules.map(({ _count, ...rule }) => ({ ...toAlertRuleResponse(rule), _count }));
 }
 
 export async function updateAlertRule(userId: string, ruleId: string, input: UpdateAlertRuleInput) {
@@ -57,10 +69,11 @@ export async function updateAlertRule(userId: string, ruleId: string, input: Upd
             : null;
     }
 
-    return prisma.alertRule.update({
+    const updated = await prisma.alertRule.update({
         where: { id: ruleId },
         data: updateData,
     });
+    return toAlertRuleResponse(updated);
 }
 
 export async function deleteAlertRule(userId: string, ruleId: string) {

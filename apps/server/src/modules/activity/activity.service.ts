@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma";
+import { logger } from "../../lib/logger";
 
 export type ActivityAction =
     | "PROJECT_CREATED"
@@ -28,7 +29,7 @@ export async function logActivity(
         });
     } catch (err) {
         // Don't let activity logging break main flows
-        console.error("[Activity] Log failed:", (err as Error).message);
+        logger.error(`[Activity] Log failed: ${(err as Error).message}`);
     }
 }
 

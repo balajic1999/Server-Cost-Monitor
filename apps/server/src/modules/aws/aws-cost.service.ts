@@ -48,14 +48,7 @@ export async function fetchAndStoreCosts(cloudAccountId: string, startDate: stri
             throw new Error(`Provider ${creds.provider} is not supported`);
     }
 
-    // Look up projectId once for the create clause
-    const account = await prisma.cloudAccount.findUnique({
-        where: { id: cloudAccountId },
-        select: { projectId: true },
-    });
-    if (!account) throw new Error("Cloud account not found");
-
-    // Upsert each data point into CostRecord
+    // projectId already loaded by getDecryptedCredentials — no extra roundtrip.
     const upserts = dataPoints.map((dp) =>
         prisma.costRecord.upsert({
             where: {
@@ -72,7 +65,7 @@ export async function fetchAndStoreCosts(cloudAccountId: string, startDate: stri
             },
             create: {
                 cloudAccountId,
-                projectId: account.projectId,
+                projectId: creds.projectId,
                 serviceName: dp.serviceName,
                 amount: dp.amount,
                 currency: dp.currency,
@@ -151,11 +144,18 @@ export async function getProjectCostSummary(projectId: string) {
         }),
     ]);
 
-    // Simple linear forecast: (month_spend / days_elapsed) * days_in_month
+    // Linear forecast based on COMPLETED days only. Cloud cost APIs lag
+    // 24–48h, so today's row is partial and would skew the daily rate
+    // downward if included. On the 1st of the month there are no completed
+    // days yet — return month-to-date as a placeholder rather than a wild
+    // multiplier off a partial day.
     const dayOfMonth = today.getDate();
     const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const completedDays = dayOfMonth - 1;
     const monthTotal = Number(monthSpend._sum.amount ?? 0);
-    const forecast = dayOfMonth > 0 ? (monthTotal / dayOfMonth) * daysInMonth : 0;
+    const forecast = completedDays > 0
+        ? (monthTotal / completedDays) * daysInMonth
+        : monthTotal;
 
     const summary = {
         todaySpend: Number(todaySpend._sum.amount ?? 0),

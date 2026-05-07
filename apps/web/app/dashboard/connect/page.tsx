@@ -3,13 +3,16 @@
 import { Suspense, useCallback, useEffect, useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "../../../contexts/ToastContext";
+import Link from "next/link";
 import {
   listProjects,
   createProject,
   listCloudAccounts,
   createCloudAccount,
+  getMyLimits,
   type CloudAccount,
   type Project,
+  type PlanLimitsAndUsage,
 } from "../../../lib/api";
 import { btnPrimary, cardClass, inputClass, labelClass } from "../../../lib/ui";
 
@@ -28,6 +31,7 @@ function ConnectContent() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState<string>("");
   const [accounts, setAccounts] = useState<CloudAccount[]>([]);
+  const [limits, setLimits] = useState<PlanLimitsAndUsage | null>(null);
   const [loading, setLoading] = useState(true);
   const [newProj, setNewProj] = useState("");
   const [creatingProj, setCreatingProj] = useState(false);
@@ -35,8 +39,12 @@ function ConnectContent() {
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const projs = await listProjects();
+      const [projs, lim] = await Promise.all([
+        listProjects(),
+        getMyLimits().catch(() => null),
+      ]);
       setProjects(projs);
+      setLimits(lim);
       const q = sp.get("project");
       const pick =
         (q && projs.some((p) => p.id === q) ? q : null) ?? projs[0]?.id ?? "";
@@ -79,6 +87,9 @@ function ConnectContent() {
   const hasAws = accounts.some((a) => a.provider === "AWS");
   const hasGcp = accounts.some((a) => a.provider === "GCP");
   const hasAzure = accounts.some((a) => a.provider === "AZURE");
+
+  const accountCap = limits?.limits.cloudAccountsPerProject ?? null;
+  const atAccountLimit = accountCap != null && accounts.length >= accountCap;
 
   if (loading && projects.length === 0) {
     return (
@@ -144,9 +155,29 @@ function ConnectContent() {
 
       {projectId && (
         <>
+          {accountCap != null && (
+            <div className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+              {accounts.length} / {accountCap} cloud account{accountCap === 1 ? "" : "s"} used in this project.
+              {atAccountLimit && (
+                <>
+                  {" Limit reached. "}
+                  <Link href="/dashboard/billing" className="text-blue-600 hover:underline">
+                    Upgrade
+                  </Link>
+                  {" or remove an account in the "}
+                  <Link href={`/dashboard/projects/${projectId}`} className="text-blue-600 hover:underline">
+                    project
+                  </Link>
+                  {" first."}
+                </>
+              )}
+            </div>
+          )}
+
           <ProviderAws
             projectId={projectId}
             connected={hasAws}
+            disabled={atAccountLimit}
             onDone={async () => {
               await refresh();
               addToast("success", "AWS connected.");
@@ -156,6 +187,7 @@ function ConnectContent() {
           <ProviderGcp
             projectId={projectId}
             connected={hasGcp}
+            disabled={atAccountLimit}
             onDone={async () => {
               await refresh();
               addToast("success", "GCP connected.");
@@ -165,6 +197,7 @@ function ConnectContent() {
           <ProviderAzure
             projectId={projectId}
             connected={hasAzure}
+            disabled={atAccountLimit}
             onDone={async () => {
               await refresh();
               addToast("success", "Azure connected.");
@@ -206,10 +239,12 @@ function Status({ ok }: { ok: boolean }) {
 function ProviderAws({
   projectId,
   connected,
+  disabled,
   onDone,
 }: {
   projectId: string;
   connected: boolean;
+  disabled?: boolean;
   onDone: () => void;
 }) {
   const { addToast } = useToast();
@@ -223,6 +258,7 @@ function ProviderAws({
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (disabled) return;
     setBusy(true);
     try {
       const base = { projectId, provider: "AWS" as const, accountLabel: label, externalAccountId: accountId };
@@ -283,7 +319,12 @@ function ProviderAws({
             <input className={inputClass} required value={roleArn} onChange={(e) => setRoleArn(e.target.value)} placeholder="arn:aws:iam::…:role/…" />
           </div>
         )}
-        <button type="submit" disabled={busy} className={btnPrimary}>
+        <button
+          type="submit"
+          disabled={busy || disabled}
+          className={btnPrimary}
+          title={disabled ? "Plan limit reached for this project" : undefined}
+        >
           {busy ? "Saving…" : "Connect AWS"}
         </button>
       </form>
@@ -294,10 +335,12 @@ function ProviderAws({
 function ProviderGcp({
   projectId,
   connected,
+  disabled,
   onDone,
 }: {
   projectId: string;
   connected: boolean;
+  disabled?: boolean;
   onDone: () => void;
 }) {
   const { addToast } = useToast();
@@ -308,6 +351,7 @@ function ProviderGcp({
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (disabled) return;
     setBusy(true);
     try {
       await createCloudAccount({
@@ -356,7 +400,12 @@ function ProviderGcp({
             placeholder="{ ... }"
           />
         </div>
-        <button type="submit" disabled={busy} className={btnPrimary}>
+        <button
+          type="submit"
+          disabled={busy || disabled}
+          className={btnPrimary}
+          title={disabled ? "Plan limit reached for this project" : undefined}
+        >
           {busy ? "Saving…" : "Connect GCP"}
         </button>
       </form>
@@ -367,10 +416,12 @@ function ProviderGcp({
 function ProviderAzure({
   projectId,
   connected,
+  disabled,
   onDone,
 }: {
   projectId: string;
   connected: boolean;
+  disabled?: boolean;
   onDone: () => void;
 }) {
   const { addToast } = useToast();
@@ -384,6 +435,7 @@ function ProviderAzure({
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    if (disabled) return;
     setBusy(true);
     try {
       await createCloudAccount({
@@ -441,7 +493,12 @@ function ProviderAzure({
           <label className={labelClass}>Client secret</label>
           <input className={inputClass} type="password" required value={azureClientSecret} onChange={(e) => setSecret(e.target.value)} />
         </div>
-        <button type="submit" disabled={busy} className={btnPrimary}>
+        <button
+          type="submit"
+          disabled={busy || disabled}
+          className={btnPrimary}
+          title={disabled ? "Plan limit reached for this project" : undefined}
+        >
           {busy ? "Saving…" : "Connect Azure"}
         </button>
       </form>

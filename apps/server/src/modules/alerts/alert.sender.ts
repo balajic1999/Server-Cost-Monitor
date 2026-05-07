@@ -2,6 +2,58 @@ import nodemailer from "nodemailer";
 import { env } from "../../config/env";
 import { logger } from "../../lib/logger";
 
+interface SecurityEmailPayload {
+  to: string;
+  userName: string;
+  eventType: "refresh_token_reuse";
+  detectedAt: Date;
+}
+
+/**
+ * Send a security-event notification email. Used when the auth subsystem
+ * detects something the user should know about (token reuse, etc.).
+ * Best-effort — callers should fire-and-forget and not block on this.
+ */
+export async function sendSecurityEmail(data: SecurityEmailPayload): Promise<void> {
+  const transporter = await getTransporter();
+
+  const summary =
+    data.eventType === "refresh_token_reuse"
+      ? "We detected an attempt to reuse a previously rotated session token on your CloudPulse account. As a precaution, all active sessions for this account have been signed out and you'll need to log in again."
+      : "We detected unusual activity on your CloudPulse account. As a precaution, your active sessions have been signed out.";
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto;">
+      <div style="background: #0f172a; padding: 24px; border-radius: 12px 12px 0 0;">
+        <h1 style="color: white; margin: 0; font-size: 20px;">🔒 CloudPulse Security Notice</h1>
+      </div>
+      <div style="border: 1px solid #e2e8f0; border-top: none; padding: 24px; border-radius: 0 0 12px 12px;">
+        <p style="color: #334155; margin-top: 0;">Hi ${data.userName},</p>
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 16px; margin: 16px 0;">
+          <p style="color: #991b1b; margin: 0;">${summary}</p>
+        </div>
+        <p style="color: #64748b; font-size: 14px;">
+          <strong>Detected at:</strong> ${data.detectedAt.toISOString()}
+        </p>
+        <p style="color: #64748b; font-size: 14px;">
+          If you didn't recognize this activity, please change your password immediately and review the cloud credentials connected to your projects.
+        </p>
+        <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
+        <p style="color: #94a3b8; font-size: 12px; margin-bottom: 0;">
+          Sent automatically by CloudPulse security monitoring.
+        </p>
+      </div>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from: env.SMTP_FROM ?? "CloudPulse <alerts@cloudpulse.dev>",
+    to: data.to,
+    subject: "🔒 CloudPulse security notice",
+    html,
+  });
+}
+
 interface AlertEmailPayload {
   to: string;
   userName: string;

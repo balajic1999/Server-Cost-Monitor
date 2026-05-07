@@ -16,6 +16,7 @@ import {
 import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema } from "./auth.schema";
 import { z } from "zod";
 import { authRateLimiter } from "../../middleware/rate-limiter.middleware";
+import { getUserPlanLimitsAndUsage } from "../../middleware/plan.middleware";
 
 export const authRouter = Router();
 
@@ -110,6 +111,19 @@ authRouter.get("/me", requireAuth, async (req: AuthedRequest, res) => {
 
   if (!user) return res.status(404).json({ message: "User not found" });
   return res.json(user);
+});
+
+// ── Plan limits + usage (protected) ──────────────────
+// Returned alongside /me so the UI can disable create-buttons proactively
+// instead of relying on the server's 403 to surface the limit.
+authRouter.get("/me/limits", requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const data = await getUserPlanLimitsAndUsage(req.user!.sub);
+    return res.json(data);
+  } catch (error) {
+    const { message, status } = sanitizeError(error, 500);
+    return res.status(status).json({ message });
+  }
 });
 
 // ── Update Profile (protected) ───────────────────────

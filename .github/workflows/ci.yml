@@ -28,7 +28,6 @@ jobs:
 
     - name: Run TypeScript typecheck (Server)
       run: npm run typecheck -w @cloudpulse/server
-      continue-on-error: true # Temporarily allow errors due to pre-existing type issues
 
     - name: Run unit tests (Server)
       run: npm run test -w @cloudpulse/server

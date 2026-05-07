@@ -3,12 +3,20 @@
 import { useCallback, useEffect, useState, FormEvent } from "react";
 import Link from "next/link";
 import { useToast } from "../../../contexts/ToastContext";
-import { listProjects, createProject, deleteProject, type Project } from "../../../lib/api";
+import {
+  listProjects,
+  createProject,
+  deleteProject,
+  getMyLimits,
+  type Project,
+  type PlanLimitsAndUsage,
+} from "../../../lib/api";
 import { btnGhost, btnPrimary, btnSecondary, cardClass, inputClass, labelClass } from "../../../lib/ui";
 
 export default function ProjectsPage() {
   const { addToast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [limits, setLimits] = useState<PlanLimitsAndUsage | null>(null);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [creating, setCreating] = useState(false);
@@ -16,7 +24,12 @@ export default function ProjectsPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setProjects(await listProjects());
+      const [projectList, planInfo] = await Promise.all([
+        listProjects(),
+        getMyLimits().catch(() => null),
+      ]);
+      setProjects(projectList);
+      setLimits(planInfo);
     } catch {
       addToast("error", "Could not load projects.");
     } finally {
@@ -28,14 +41,22 @@ export default function ProjectsPage() {
     load();
   }, [load]);
 
+  const atProjectLimit =
+    !!limits && limits.usage.projects >= limits.limits.projects;
+
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
     const n = name.trim();
     if (n.length < 2) return;
+    if (atProjectLimit) return;
     setCreating(true);
     try {
       const p = await createProject({ name: n, timezone: "UTC" });
       setProjects((prev) => [p, ...prev]);
+      // Bump local usage so the form gates instantly without a re-fetch.
+      setLimits((prev) =>
+        prev ? { ...prev, usage: { ...prev.usage, projects: prev.usage.projects + 1 } } : prev,
+      );
       setName("");
       addToast("success", "Project created.");
     } catch (err) {
@@ -72,7 +93,22 @@ export default function ProjectsPage() {
       </div>
 
       <div className={cardClass}>
-        <h2 className="text-sm font-medium text-zinc-900">New project</h2>
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-sm font-medium text-zinc-900">New project</h2>
+          {limits && (
+            <span className="text-xs text-zinc-500">
+              {limits.usage.projects} / {limits.limits.projects} used
+              {limits.plan === "FREE" && atProjectLimit && (
+                <>
+                  {" · "}
+                  <Link href="/dashboard/billing" className="text-blue-600 hover:underline">
+                    Upgrade
+                  </Link>
+                </>
+              )}
+            </span>
+          )}
+        </div>
         <form onSubmit={handleCreate} className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
             <label htmlFor="pn" className={labelClass}>
@@ -84,9 +120,15 @@ export default function ProjectsPage() {
               placeholder="e.g. Production"
               value={name}
               onChange={(e) => setName(e.target.value)}
+              disabled={atProjectLimit}
             />
           </div>
-          <button type="submit" disabled={creating} className={btnPrimary}>
+          <button
+            type="submit"
+            disabled={creating || atProjectLimit}
+            className={btnPrimary}
+            title={atProjectLimit ? `Plan limit reached (${limits?.limits.projects})` : undefined}
+          >
             {creating ? "Adding…" : "Add project"}
           </button>
         </form>

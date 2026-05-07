@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { logger } from "../lib/logger";
+import { runWithRequestContext } from "../lib/request-context";
 
 declare global {
     namespace Express {
@@ -12,6 +13,9 @@ declare global {
 /**
  * Assigns a unique request ID to each incoming request.
  * Sets X-Request-Id header on the response for tracing.
+ * Wraps the downstream chain in an AsyncLocalStorage context so any
+ * `logger.*` call from anywhere in the request handlers (including awaited
+ * code) is automatically stamped with this requestId.
  * Logs access details on response finish.
  */
 export function requestIdMiddleware(req: Request, res: Response, next: NextFunction) {
@@ -39,5 +43,5 @@ export function requestIdMiddleware(req: Request, res: Response, next: NextFunct
         }
     });
 
-    next();
+    runWithRequestContext({ requestId: id }, () => next());
 }

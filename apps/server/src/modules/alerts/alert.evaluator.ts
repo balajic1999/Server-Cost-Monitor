@@ -77,11 +77,12 @@ export async function evaluateAlerts(projectId: string): Promise<AlertTrigger[]>
 
         if (!project) continue;
 
-        // Deduplicate: don't send same alert type within 6 hours
+        // Deduplicate by alert TYPE (not reason text — reasons embed dollar
+        // amounts that drift every cycle, which would defeat suppression).
         const recentAlert = await prisma.alertSent.findFirst({
             where: {
                 alertRuleId: trigger.ruleId,
-                reason: trigger.reason,
+                payload: { path: ["type"], equals: trigger.payload.type },
                 sentAt: { gte: new Date(Date.now() - 6 * 60 * 60 * 1000) },
             },
         });

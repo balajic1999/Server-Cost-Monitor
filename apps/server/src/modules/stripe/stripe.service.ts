@@ -1,12 +1,38 @@
 import Stripe from "stripe";
 import { prisma } from "../../lib/prisma";
+import { invalidatePlanLimitsCache } from "../../middleware/plan.middleware";
 import { env } from "../../config/env";
+
+// Pinned API version. Must be in the literal union exposed by the installed
+// Stripe SDK (see node_modules/stripe/types/lib.d.ts → LatestApiVersion).
+// Bump in lockstep with the SDK; outbound responses come back in this shape.
+const STRIPE_API_VERSION = "2026-01-28.clover" as const;
 
 function getStripe(): Stripe {
     if (!env.STRIPE_SECRET_KEY) {
         throw new Error("STRIPE_SECRET_KEY is not configured");
     }
-    return new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: "2024-10-28.acacia" });
+    return new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: STRIPE_API_VERSION });
+}
+
+/**
+ * Read the current billing period from a Stripe Subscription. In API versions
+ * ≥ 2025-08-27.basil these fields live on subscription items, not the
+ * subscription itself. Older webhook payloads still carry them at the top
+ * level, so we fall back to either source.
+ */
+function readSubscriptionPeriod(sub: Stripe.Subscription): { start: Date | null; end: Date | null } {
+    const legacy = sub as Stripe.Subscription & {
+        current_period_start?: number;
+        current_period_end?: number;
+    };
+    const item = sub.items?.data?.[0];
+    const startSec = item?.current_period_start ?? legacy.current_period_start;
+    const endSec = item?.current_period_end ?? legacy.current_period_end;
+    return {
+        start: typeof startSec === "number" ? new Date(startSec * 1000) : null,
+        end: typeof endSec === "number" ? new Date(endSec * 1000) : null,
+    };
 }
 
 /**
@@ -107,6 +133,7 @@ export async function handleWebhookEvent(event: Stripe.Event) {
                     status: "ACTIVE",
                 },
             });
+            await invalidatePlanLimitsCache(userId);
             break;
         }
 
@@ -119,14 +146,15 @@ export async function handleWebhookEvent(event: Stripe.Event) {
 
             const status = sub.status === "active" ? "ACTIVE" :
                 sub.status === "past_due" ? "PAST_DUE" :
-                    sub.status === "canceled" ? "CANCELLED" : "ACTIVE";
+                    sub.status === "canceled" ? "CANCELED" : "ACTIVE";
 
+            const period = readSubscriptionPeriod(sub);
             await prisma.subscription.update({
                 where: { id: dbSub.id },
                 data: {
                     status,
-                    currentPeriodStart: new Date(sub.current_period_start * 1000),
-                    currentPeriodEnd: new Date(sub.current_period_end * 1000),
+                    currentPeriodStart: period.start,
+                    currentPeriodEnd: period.end,
                 },
             });
             break;
@@ -143,10 +171,11 @@ export async function handleWebhookEvent(event: Stripe.Event) {
                 where: { id: dbSub.id },
                 data: {
                     plan: "FREE",
-                    status: "CANCELLED",
+                    status: "CANCELED",
                     stripeSubscriptionId: null,
                 },
             });
+            await invalidatePlanLimitsCache(dbSub.userId);
             break;
         }
 

@@ -17,6 +17,38 @@ export interface CostFetchJobResult {
     alertsTriggered: number;
 }
 
+// Concurrency cap for per-account cloud-API calls. Cost Explorer / GCP Billing /
+// Azure Cost Management all rate-limit per account, so 5 in-flight is a safe
+// default that's ~5× faster than serial without risking 429s.
+const COST_FETCH_CONCURRENCY = 5;
+
+async function processAccount(
+    account: { id: string; projectId: string; accountLabel: string },
+    startDate: string,
+    endDate: string,
+): Promise<CostFetchResult> {
+    try {
+        const result = await fetchAndStoreCosts(account.id, startDate, endDate);
+        await invalidateCostSummaryCache(account.projectId);
+        logger.info(`✓ ${account.accountLabel}: ${result.recordsUpserted} records`);
+        return {
+            accountId: account.id,
+            label: account.accountLabel,
+            success: true,
+            recordsUpserted: result.recordsUpserted,
+        };
+    } catch (error) {
+        const msg = (error as Error).message;
+        logger.error(`✗ ${account.accountLabel}: ${msg}`);
+        return {
+            accountId: account.id,
+            label: account.accountLabel,
+            success: false,
+            error: msg,
+        };
+    }
+}
+
 /**
  * Shared cost fetch logic used by both BullMQ worker and cron fallback.
  * Fetches costs for all active cloud accounts and evaluates alert rules.
@@ -39,28 +71,15 @@ export async function executeCostFetchJob(): Promise<CostFetchJobResult> {
     const results: CostFetchResult[] = [];
     const projectsToEvaluate = new Set<string>();
 
-    for (const account of accounts) {
-        try {
-            const result = await fetchAndStoreCosts(account.id, startDate, endDate);
-            results.push({
-                accountId: account.id,
-                label: account.accountLabel,
-                success: true,
-                recordsUpserted: result.recordsUpserted,
-            });
-            projectsToEvaluate.add(account.projectId);
-            // Invalidate cached cost summary for this project
-            await invalidateCostSummaryCache(account.projectId);
-            logger.info(`✓ ${account.accountLabel}: ${result.recordsUpserted} records`);
-        } catch (error) {
-            const msg = (error as Error).message;
-            logger.error(`✗ ${account.accountLabel}: ${msg}`);
-            results.push({
-                accountId: account.id,
-                label: account.accountLabel,
-                success: false,
-                error: msg,
-            });
+    for (let i = 0; i < accounts.length; i += COST_FETCH_CONCURRENCY) {
+        const batch = accounts.slice(i, i + COST_FETCH_CONCURRENCY);
+        const batchResults = await Promise.all(
+            batch.map((account) => processAccount(account, startDate, endDate)),
+        );
+        for (let j = 0; j < batchResults.length; j++) {
+            const r = batchResults[j];
+            results.push(r);
+            if (r.success) projectsToEvaluate.add(batch[j].projectId);
         }
     }
 

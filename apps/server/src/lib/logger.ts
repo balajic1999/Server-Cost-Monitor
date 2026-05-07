@@ -1,4 +1,5 @@
 import { randomUUID } from "crypto";
+import { getRequestId } from "./request-context";
 
 type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -26,6 +27,16 @@ interface LogMeta {
 
 function shouldLog(level: LogLevel): boolean {
     return LEVEL_ORDER[level] >= LEVEL_ORDER[MIN_LEVEL];
+}
+
+/**
+ * Merge the ALS-stored requestId into a log call's meta. Explicit meta wins
+ * over ambient context, so callers can override (e.g. background jobs).
+ */
+function withContextMeta(meta?: LogMeta): LogMeta | undefined {
+    const ctxId = getRequestId();
+    if (!ctxId) return meta;
+    return { requestId: ctxId, ...(meta ?? {}) };
 }
 
 function formatMessage(level: LogLevel, message: string, meta?: LogMeta): string {
@@ -56,16 +67,16 @@ function formatMessage(level: LogLevel, message: string, meta?: LogMeta): string
 function createLogger() {
     return {
         debug(message: string, meta?: LogMeta) {
-            if (shouldLog("debug")) console.debug(formatMessage("debug", message, meta));
+            if (shouldLog("debug")) console.debug(formatMessage("debug", message, withContextMeta(meta)));
         },
         info(message: string, meta?: LogMeta) {
-            if (shouldLog("info")) console.info(formatMessage("info", message, meta));
+            if (shouldLog("info")) console.info(formatMessage("info", message, withContextMeta(meta)));
         },
         warn(message: string, meta?: LogMeta) {
-            if (shouldLog("warn")) console.warn(formatMessage("warn", message, meta));
+            if (shouldLog("warn")) console.warn(formatMessage("warn", message, withContextMeta(meta)));
         },
         error(message: string, meta?: LogMeta) {
-            if (shouldLog("error")) console.error(formatMessage("error", message, meta));
+            if (shouldLog("error")) console.error(formatMessage("error", message, withContextMeta(meta)));
         },
         /** Create a child logger that always includes the given requestId */
         child(requestId: string) {
