@@ -27,6 +27,8 @@ import {
     pageTitleClass
 } from "../../../lib/ui";
 import { EmptyState } from "../../../components/EmptyState";
+import { PlanLimitBanner } from "../../../components/PlanLimitBanner";
+import { refreshPlan } from "../../../lib/plan-cache";
 
 function formatMoney(n: number): string {
     return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -85,6 +87,7 @@ export default function ProjectsPage() {
         setLimits((prev) =>
             prev ? { ...prev, usage: { ...prev.usage, projects: prev.usage.projects + 1 } } : prev
         );
+        refreshPlan();
         addToast("success", "Project created.");
     }
 
@@ -103,6 +106,7 @@ export default function ProjectsPage() {
             setLimits((prev) =>
                 prev ? { ...prev, usage: { ...prev.usage, projects: Math.max(0, prev.usage.projects - 1) } } : prev
             );
+            refreshPlan();
             addToast("success", "Project removed.");
             setPendingDelete(null);
         } catch (err) {
@@ -157,15 +161,7 @@ export default function ProjectsPage() {
                 </button>
             </div>
 
-            {atProjectLimit && limits?.plan === "FREE" ? (
-                <div className="rounded-md border border-border bg-muted px-4 py-3 text-xs text-muted-foreground">
-                    You&rsquo;ve reached the Free plan limit.{" "}
-                    <Link href="/dashboard/settings?tab=billing" className="text-accent hover:underline">
-                        Upgrade to Pro
-                    </Link>{" "}
-                    to add up to 10 projects.
-                </div>
-            ) : null}
+            <PlanLimitBanner kind="projects" currentCount={projects.length} />
 
             {projects.length === 0 ? (
                 <div className={cardClass}>

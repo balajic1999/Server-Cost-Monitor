@@ -2,8 +2,11 @@
 
 import { useAuth } from "../../contexts/AuthContext";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { SubscriptionBanner } from "../../components/SubscriptionBanner";
+import { PlanBadge } from "../../components/PlanBadge";
+import { DashboardFooter } from "../../components/DashboardFooter";
 
 const nav = [
     { href: "/dashboard", label: "Dashboard" },
@@ -110,8 +113,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 </nav>
 
                 <div className="border-t border-border px-3 py-3">
-                    <p className="truncate text-xs font-medium text-foreground">{user.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                    <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-medium text-foreground">{user.name}</p>
+                            <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                        </div>
+                        <PlanBadge />
+                    </div>
                     <button
                         type="button"
                         onClick={() => logout()}
@@ -141,7 +149,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <Wordmark />
                 </header>
 
+                <Suspense fallback={null}>
+                    <SubscriptionBanner />
+                </Suspense>
+
                 <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 lg:px-8">{children}</main>
+
+                <DashboardFooter />
             </div>
         </div>
     );

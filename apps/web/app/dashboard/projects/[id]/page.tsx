@@ -19,6 +19,8 @@ import {
 } from "../../../../lib/api";
 import { useToast } from "../../../../contexts/ToastContext";
 import { btnGhost, btnPrimary, btnSecondary, cardClass, inputClass, labelClass } from "../../../../lib/ui";
+import { ConfirmDialog } from "../../../../components/ConfirmDialog";
+import { PlanLimitBanner } from "../../../../components/PlanLimitBanner";
 
 export default function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +33,10 @@ export default function ProjectDetailPage() {
   const [fetching, setFetching] = useState<string | null>(null);
   const [monthly, setMonthly] = useState("");
   const [ruleBusy, setRuleBusy] = useState(false);
+  const [accountToRemove, setAccountToRemove] = useState<CloudAccount | null>(null);
+  const [removingAccount, setRemovingAccount] = useState(false);
+  const [ruleToRemove, setRuleToRemove] = useState<AlertRule | null>(null);
+  const [removingRule, setRemovingRule] = useState(false);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -72,14 +78,19 @@ export default function ProjectDetailPage() {
     }
   }
 
-  async function handleDeleteAccount(accountId: string) {
-    if (!confirm("Remove this account?")) return;
+  async function confirmRemoveAccount() {
+    if (!accountToRemove) return;
+    const accountId = accountToRemove.id;
+    setRemovingAccount(true);
     try {
       await deleteCloudAccount(accountId);
       setAccounts((a) => a.filter((x) => x.id !== accountId));
       addToast("success", "Account removed.");
+      setAccountToRemove(null);
     } catch (err) {
       addToast("error", (err as Error).message);
+    } finally {
+      setRemovingAccount(false);
     }
   }
 
@@ -106,14 +117,19 @@ export default function ProjectDetailPage() {
     }
   }
 
-  async function removeRule(ruleId: string) {
-    if (!confirm("Delete this budget rule?")) return;
+  async function confirmRemoveRule() {
+    if (!ruleToRemove) return;
+    const ruleId = ruleToRemove.id;
+    setRemovingRule(true);
     try {
       await deleteAlertRule(ruleId);
       setRules((r) => r.filter((x) => x.id !== ruleId));
       addToast("success", "Removed.");
+      setRuleToRemove(null);
     } catch (err) {
       addToast("error", (err as Error).message);
+    } finally {
+      setRemovingRule(false);
     }
   }
 
@@ -134,7 +150,6 @@ export default function ProjectDetailPage() {
   const atAccountLimit = accountCap != null && accounts.length >= accountCap;
   const budgetRules = rules.filter((r) => r.monthlyBudget);
   const atRuleLimit = ruleCap != null && rules.length >= ruleCap;
-  const isFreePlan = limits?.plan === "FREE";
 
   return (
     <div className="space-y-8">
@@ -158,20 +173,14 @@ export default function ProjectDetailPage() {
         )}
       </div>
 
+      <PlanLimitBanner kind="cloudAccounts" currentCount={accounts.length} />
+
       <div className={cardClass}>
         <div className="flex items-baseline justify-between">
           <h2 className="text-sm font-medium text-foreground">Cloud accounts</h2>
           {accountCap != null && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground tabular-nums">
               {accounts.length} / {accountCap} used
-              {isFreePlan && atAccountLimit && (
-                <>
-                  {" · "}
-                  <Link href="/dashboard/settings?tab=billing" className="text-accent hover:underline">
-                    Upgrade
-                  </Link>
-                </>
-              )}
             </span>
           )}
         </div>
@@ -208,7 +217,7 @@ export default function ProjectDetailPage() {
                   >
                     {fetching === a.id ? "Syncing…" : "Sync costs"}
                   </button>
-                  <button type="button" onClick={() => handleDeleteAccount(a.id)} className={`${btnGhost} text-danger`}>
+                  <button type="button" onClick={() => setAccountToRemove(a)} className={`${btnGhost} text-danger`}>
                     Remove
                   </button>
                 </div>
@@ -218,20 +227,14 @@ export default function ProjectDetailPage() {
         )}
       </div>
 
+      <PlanLimitBanner kind="alertRules" currentCount={rules.length} />
+
       <div className={cardClass}>
         <div className="flex items-baseline justify-between">
           <h2 className="text-sm font-medium text-foreground">Monthly budget alert</h2>
           {ruleCap != null && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground tabular-nums">
               {rules.length} / {ruleCap} used
-              {isFreePlan && atRuleLimit && (
-                <>
-                  {" · "}
-                  <Link href="/dashboard/settings?tab=billing" className="text-accent hover:underline">
-                    Upgrade
-                  </Link>
-                </>
-              )}
             </span>
           )}
         </div>
@@ -241,7 +244,7 @@ export default function ProjectDetailPage() {
             {budgetRules.map((r) => (
               <li key={r.id} className="flex items-center justify-between text-sm">
                 <span className="tabular-nums text-foreground">${Number(r.monthlyBudget).toFixed(2)} / mo</span>
-                <button type="button" onClick={() => removeRule(r.id)} className={btnGhost}>
+                <button type="button" onClick={() => setRuleToRemove(r)} className={btnGhost}>
                   Remove
                 </button>
               </li>
@@ -276,6 +279,41 @@ export default function ProjectDetailPage() {
       <Link href="/dashboard/projects" className="text-sm text-accent hover:underline">
         ← All projects
       </Link>
+
+      <ConfirmDialog
+        open={accountToRemove !== null}
+        title="Remove cloud account?"
+        description={
+          accountToRemove ? (
+            <>
+              This will remove <span className="font-medium text-foreground">{accountToRemove.accountLabel}</span> from this project. Stored cost records for this account will be deleted.
+            </>
+          ) : null
+        }
+        confirmLabel="Remove"
+        tone="danger"
+        busy={removingAccount}
+        onConfirm={confirmRemoveAccount}
+        onCancel={() => (removingAccount ? null : setAccountToRemove(null))}
+      />
+
+      <ConfirmDialog
+        open={ruleToRemove !== null}
+        title="Delete budget rule?"
+        description={
+          ruleToRemove ? (
+            <>
+              Removing this rule will stop notifications for the{" "}
+              <span className="font-medium text-foreground">${Number(ruleToRemove.monthlyBudget).toFixed(2)}</span> monthly cap on this project.
+            </>
+          ) : null
+        }
+        confirmLabel="Delete rule"
+        tone="danger"
+        busy={removingRule}
+        onConfirm={confirmRemoveRule}
+        onCancel={() => (removingRule ? null : setRuleToRemove(null))}
+      />
     </div>
   );
 }

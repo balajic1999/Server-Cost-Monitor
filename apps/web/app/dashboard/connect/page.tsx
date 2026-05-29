@@ -2,7 +2,6 @@
 
 import { Suspense, useCallback, useEffect, useState, FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { useToast } from "../../../contexts/ToastContext";
 import {
     listProjects,
@@ -26,6 +25,7 @@ import {
     pageTitleClass
 } from "../../../lib/ui";
 import { SectionCard } from "../../../components/SectionCard";
+import { PlanLimitBanner } from "../../../components/PlanLimitBanner";
 
 const HELP = {
     AWS: "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html",
@@ -196,25 +196,16 @@ function ConnectContent() {
                     ) : null}
 
                     {accountCap != null ? (
-                        <p className="text-xs text-muted-foreground">
-                            <span className="tabular-nums">
-                                {accounts.length} / {accountCap}
-                            </span>{" "}
-                            cloud account{accountCap === 1 ? "" : "s"} used in this project.
-                            {atAccountLimit ? (
-                                <>
-                                    {" Limit reached. "}
-                                    <Link href="/dashboard/settings?tab=billing" className="text-accent hover:underline">
-                                        Upgrade
-                                    </Link>{" "}
-                                    or remove an account in the{" "}
-                                    <Link href={`/dashboard/projects/${projectId}`} className="text-accent hover:underline">
-                                        project
-                                    </Link>{" "}
-                                    first.
-                                </>
-                            ) : null}
-                        </p>
+                        atAccountLimit ? (
+                            <PlanLimitBanner kind="cloudAccounts" currentCount={accounts.length} />
+                        ) : (
+                            <p className="text-xs text-muted-foreground">
+                                <span className="tabular-nums">
+                                    {accounts.length} / {accountCap}
+                                </span>{" "}
+                                cloud account{accountCap === 1 ? "" : "s"} used in this project.
+                            </p>
+                        )
                     ) : null}
 
                     {!atAccountLimit ? (
