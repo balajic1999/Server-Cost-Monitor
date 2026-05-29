@@ -47,35 +47,35 @@ export default function StatusPage() {
   const ok = health?.status === "ok";
 
   return (
-    <main className="min-h-screen bg-zinc-50 p-6">
+    <main className="min-h-screen bg-background p-6">
       <div className="mx-auto max-w-md space-y-6 pt-12">
         <div className="text-center">
-          <h1 className="text-xl font-semibold text-zinc-900">API status</h1>
-          <p className="mt-1 text-sm text-zinc-500">Health check</p>
+          <h1 className="font-serif text-3xl font-medium tracking-tight text-foreground">API status</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Health check</p>
         </div>
 
-        <div className="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
           {checking && !health && !error ? (
-            <p className="text-sm text-zinc-500">Checking…</p>
+            <p className="text-sm text-muted-foreground">Checking…</p>
           ) : error || !health ? (
-            <p className="text-sm text-red-600">Unreachable</p>
+            <p className="text-sm text-danger">Unreachable</p>
           ) : (
             <ul className="space-y-2 text-sm">
               <li className="flex justify-between">
-                <span className="text-zinc-500">API</span>
-                <span className={ok ? "text-zinc-900" : "text-red-600"}>{ok ? "OK" : "Down"}</span>
+                <span className="text-muted-foreground">API</span>
+                <span className={ok ? "text-foreground" : "text-danger"}>{ok ? "OK" : "Down"}</span>
               </li>
               <li className="flex justify-between">
-                <span className="text-zinc-500">Database</span>
-                <span className="text-zinc-900">{health.db}</span>
+                <span className="text-muted-foreground">Database</span>
+                <span className="text-foreground">{health.db}</span>
               </li>
               <li className="flex justify-between">
-                <span className="text-zinc-500">Uptime</span>
-                <span className="tabular-nums text-zinc-900">{formatUptime(health.uptime)}</span>
+                <span className="text-muted-foreground">Uptime</span>
+                <span className="tabular-nums text-foreground">{formatUptime(health.uptime)}</span>
               </li>
               <li className="flex justify-between">
-                <span className="text-zinc-500">Version</span>
-                <span className="font-mono text-xs text-zinc-700">{health.version}</span>
+                <span className="text-muted-foreground">Version</span>
+                <span className="font-mono text-xs text-foreground">{health.version}</span>
               </li>
             </ul>
           )}
@@ -85,7 +85,7 @@ export default function StatusPage() {
         </div>
 
         <div className="text-center">
-          <Link href="/" className="text-sm text-blue-600 hover:underline">
+          <Link href="/" className="text-sm text-accent hover:underline">
             Home
           </Link>
         </div>

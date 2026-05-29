@@ -3,37 +3,37 @@
 @tailwind utilities;
 
 @layer base {
-  html {
-    @apply antialiased;
-  }
+    html {
+        @apply antialiased;
+    }
 
-  body {
-    @apply bg-zinc-50 text-zinc-900;
-  }
+    body {
+        @apply bg-background text-foreground;
+    }
 }
 
 @keyframes slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .animate-slide-up {
-  animation: slide-up 0.2s ease-out;
+    animation: slide-up 0.2s ease-out;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-slide-up {
-    animation: none;
-  }
+    .animate-slide-up {
+        animation: none;
+    }
 
-  .animate-pulse {
-    animation: none;
-  }
+    .animate-pulse {
+        animation: none;
+    }
 }

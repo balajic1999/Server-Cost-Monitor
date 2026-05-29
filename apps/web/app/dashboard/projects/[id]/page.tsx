@@ -120,13 +120,13 @@ export default function ProjectDetailPage() {
   if (loading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-200 border-t-blue-600" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-accent" />
       </div>
     );
   }
 
   if (!project) {
-    return <p className="text-sm text-zinc-500">Project not found.</p>;
+    return <p className="text-sm text-muted-foreground">Project not found.</p>;
   }
 
   const accountCap = limits?.limits.cloudAccountsPerProject;
@@ -140,8 +140,8 @@ export default function ProjectDetailPage() {
     <div className="space-y-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">{project.name}</h1>
-          <p className="text-sm text-zinc-500">Timezone {project.timezone}</p>
+          <h1 className="font-serif text-2xl font-medium tracking-tight text-foreground">{project.name}</h1>
+          <p className="text-sm text-muted-foreground">Timezone {project.timezone}</p>
         </div>
         {atAccountLimit ? (
           <span
@@ -160,14 +160,14 @@ export default function ProjectDetailPage() {
 
       <div className={cardClass}>
         <div className="flex items-baseline justify-between">
-          <h2 className="text-sm font-medium text-zinc-900">Cloud accounts</h2>
+          <h2 className="text-sm font-medium text-foreground">Cloud accounts</h2>
           {accountCap != null && (
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-muted-foreground">
               {accounts.length} / {accountCap} used
               {isFreePlan && atAccountLimit && (
                 <>
                   {" · "}
-                  <Link href="/dashboard/billing" className="text-blue-600 hover:underline">
+                  <Link href="/dashboard/settings?tab=billing" className="text-accent hover:underline">
                     Upgrade
                   </Link>
                 </>
@@ -176,13 +176,13 @@ export default function ProjectDetailPage() {
           )}
         </div>
         {accounts.length === 0 ? (
-          <p className="mt-3 text-sm text-zinc-500">
+          <p className="mt-3 text-sm text-muted-foreground">
             No accounts yet.{" "}
             {atAccountLimit ? (
               "Plan limit reached."
             ) : (
               <>
-                <Link href={`/dashboard/connect?project=${project.id}`} className="text-blue-600 hover:underline">
+                <Link href={`/dashboard/connect?project=${project.id}`} className="text-accent hover:underline">
                   Connect one
                 </Link>
                 .
@@ -190,12 +190,12 @@ export default function ProjectDetailPage() {
             )}
           </p>
         ) : (
-          <ul className="mt-4 divide-y divide-zinc-100">
+          <ul className="mt-4 divide-y divide-border">
             {accounts.map((a) => (
               <li key={a.id} className="flex flex-col gap-2 py-3 first:pt-0 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-medium text-zinc-900">{a.accountLabel}</p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-sm font-medium text-foreground">{a.accountLabel}</p>
+                  <p className="text-xs text-muted-foreground">
                     {a.provider} · {a.externalAccountId}
                   </p>
                 </div>
@@ -208,7 +208,7 @@ export default function ProjectDetailPage() {
                   >
                     {fetching === a.id ? "Syncing…" : "Sync costs"}
                   </button>
-                  <button type="button" onClick={() => handleDeleteAccount(a.id)} className={`${btnGhost} text-red-600`}>
+                  <button type="button" onClick={() => handleDeleteAccount(a.id)} className={`${btnGhost} text-danger`}>
                     Remove
                   </button>
                 </div>
@@ -220,14 +220,14 @@ export default function ProjectDetailPage() {
 
       <div className={cardClass}>
         <div className="flex items-baseline justify-between">
-          <h2 className="text-sm font-medium text-zinc-900">Monthly budget alert</h2>
+          <h2 className="text-sm font-medium text-foreground">Monthly budget alert</h2>
           {ruleCap != null && (
-            <span className="text-xs text-zinc-500">
+            <span className="text-xs text-muted-foreground">
               {rules.length} / {ruleCap} used
               {isFreePlan && atRuleLimit && (
                 <>
                   {" · "}
-                  <Link href="/dashboard/billing" className="text-blue-600 hover:underline">
+                  <Link href="/dashboard/settings?tab=billing" className="text-accent hover:underline">
                     Upgrade
                   </Link>
                 </>
@@ -235,12 +235,12 @@ export default function ProjectDetailPage() {
             </span>
           )}
         </div>
-        <p className="mt-1 text-xs text-zinc-500">Email when spend crosses this cap (uses your first saved rule pattern).</p>
+        <p className="mt-1 text-xs text-muted-foreground">Email when spend crosses this cap (uses your first saved rule pattern).</p>
         {budgetRules.length > 0 ? (
           <ul className="mt-4 space-y-2">
             {budgetRules.map((r) => (
               <li key={r.id} className="flex items-center justify-between text-sm">
-                <span className="tabular-nums text-zinc-800">${Number(r.monthlyBudget).toFixed(2)} / mo</span>
+                <span className="tabular-nums text-foreground">${Number(r.monthlyBudget).toFixed(2)} / mo</span>
                 <button type="button" onClick={() => removeRule(r.id)} className={btnGhost}>
                   Remove
                 </button>
@@ -273,7 +273,7 @@ export default function ProjectDetailPage() {
         </form>
       </div>
 
-      <Link href="/dashboard/projects" className="text-sm text-blue-600 hover:underline">
+      <Link href="/dashboard/projects" className="text-sm text-accent hover:underline">
         ← All projects
       </Link>
     </div>

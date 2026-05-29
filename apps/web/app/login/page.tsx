@@ -30,20 +30,31 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-zinc-50 p-4">
+    <main className="flex min-h-screen items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <Link href="/" className="inline-flex items-center gap-2">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md bg-zinc-900 text-sm font-bold text-white">CP</span>
-            <span className="text-lg font-semibold text-zinc-900">CloudPulse</span>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5 text-accent"
+              aria-hidden
+            >
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+            <span className="font-serif text-lg font-medium text-foreground">CloudPulse</span>
           </Link>
-          <h1 className="mt-6 text-2xl font-semibold tracking-tight text-zinc-900">Sign in</h1>
-          <p className="mt-1 text-sm text-zinc-500">Access your dashboard</p>
+          <h1 className="mt-6 font-serif text-3xl font-medium tracking-tight text-foreground">Welcome back</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Sign in to your dashboard</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-zinc-200 bg-white p-8 shadow-sm">
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-border bg-surface p-8 shadow-sm">
           {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
+            <div className="rounded-md border border-danger/40 bg-danger/5 px-3 py-2 text-sm text-danger">{error}</div>
           )}
 
           <div>
@@ -79,7 +90,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPw(!showPw)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-2 py-1 text-xs text-zinc-500 hover:bg-zinc-100"
+                className="absolute right-2 top-1/2 -translate-y-1/2 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
               >
                 {showPw ? "Hide" : "Show"}
               </button>
@@ -87,7 +98,7 @@ export default function LoginPage() {
           </div>
 
           <div className="flex justify-end">
-            <Link href="/forgot-password" className="text-xs text-blue-600 hover:underline">
+            <Link href="/forgot-password" className="text-xs text-accent hover:underline">
               Forgot password?
             </Link>
           </div>
@@ -97,9 +108,9 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="text-center text-sm text-zinc-500">
+        <p className="text-center text-sm text-muted-foreground">
           No account?{" "}
-          <Link href="/register" className="font-medium text-blue-600 hover:underline">
+          <Link href="/register" className="font-medium text-accent hover:underline">
             Register
           </Link>
         </p>
