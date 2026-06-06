@@ -11,6 +11,7 @@ import { DashboardFooter } from "../../components/DashboardFooter";
 const nav = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/dashboard/projects", label: "Projects" },
+    { href: "/dashboard/compare", label: "Compare" },
     { href: "/dashboard/alerts", label: "Alerts" },
     { href: "/dashboard/settings", label: "Settings" }
 ] as const;

@@ -272,6 +272,31 @@ export function getProjectCostSummary(projectId: string) {
     return apiFetch<CostSummary>(`/api/costs/summary/${projectId}`);
 }
 
+export interface CompareRecord {
+    projectId: string;
+    serviceName: string;
+    amount: number;
+    currency: string;
+    periodStart: string;
+    periodEnd: string;
+}
+
+export interface CompareSummary extends CostSummary {
+    projectId: string;
+}
+
+export interface CompareResponse {
+    projects: { id: string; name: string }[];
+    records: CompareRecord[];
+    summaries: CompareSummary[];
+    meta: { days: number; startDate: string; endDate: string };
+}
+
+export function getCompareCosts(projectIds: string[], days: number) {
+    const ids = projectIds.join(",");
+    return apiFetch<CompareResponse>(`/api/costs/compare?projectIds=${ids}&days=${days}`);
+}
+
 // ── Alert Rules ─────────────────────────────────────
 
 export interface AlertRule {
